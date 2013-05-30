@@ -3,7 +3,7 @@
  *
  * @author Kain
  * @date 2013-5-12
- * @version 1.0.0
+ * @version 0.1
  */
 package com.eandroid.view.util;
 
