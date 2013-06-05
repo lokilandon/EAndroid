@@ -28,7 +28,7 @@ public class HeadLoader {
 				charset = Charset.forName(headerValue.substring(
 						index + 8,headerValue.length()));
 			} catch (Exception e) {
-				EALog.e("HeadLoader loadContentTypeCharset error", e.getMessage());
+				EALog.w("HeadLoader loadContentTypeCharset error", e.getMessage());
 			}
 		}
 		return charset;

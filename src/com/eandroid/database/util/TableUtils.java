@@ -253,7 +253,7 @@ public class TableUtils {
 			if(ColumnUtils.isForeignKey(field)){
 				ForeignKey fk = ColumnUtils.getForeignKey(field);
 				if(fk == null){
-					EALog.e("TableUtils", "getForeignKey failed");
+					EALog.w("TableUtils", "getForeignKey failed");
 					continue;
 				}
 				fks.add(fk);

@@ -52,7 +52,7 @@ public class LogFilter extends BasicNetIOFilter{
 	public void onCatchException(NextFilterSelector next, Session session,
 			Exception exception) {
 		if(logException){
-			EALog.e(TAG+" onCatchException", exception.toString());
+			EALog.w(TAG+" onCatchException", exception.toString());
 		}
 		super.onCatchException(next, session, exception);
 	}

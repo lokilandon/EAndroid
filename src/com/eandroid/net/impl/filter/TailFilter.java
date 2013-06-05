@@ -19,7 +19,7 @@ public class TailFilter extends BasicNetIOFilter{
 			if(session.getHandler() != null)
 				session.getHandler().onSessionCreated(session);
 		} catch (Exception e) {
-			EALog.e(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
+			EALog.w(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
 			e.printStackTrace();
 		}
 		
@@ -31,7 +31,7 @@ public class TailFilter extends BasicNetIOFilter{
 		if(session.getHandler() != null)
 			session.getHandler().onRead(session, message);
 		}catch (Exception e) {
-			EALog.e(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
+			EALog.w(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
 			e.printStackTrace();
 		}
 	}
@@ -43,7 +43,7 @@ public class TailFilter extends BasicNetIOFilter{
 			if(session.getHandler() != null)
 				session.getHandler().onCatchException(session, exception);
 		} catch (Exception e) {
-			EALog.e(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
+			EALog.w(TAG, "Uncatch exception while handle response:"+e.getClass().getName());
 			e.printStackTrace();
 		}
 	}

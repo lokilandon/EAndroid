@@ -73,7 +73,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 				}
 				long diskCacheSize = mCacheParams.diskCacheSize;
 				long usableSpace = FileUtils.getUsableSpace(diskCacheDir);
-
+				
 				if(usableSpace < MIN_DISK_CACHE_SIZE){
 					throw new NotEnoughSpaceException(TAG + " initCache - Disk cache init failed,not enough space");
 				}
@@ -87,7 +87,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 					inited.set(true);
 					EALog.d(TAG, "Disk cache initialized");
 				} catch (final IOException e) {
-					EALog.e(TAG, "initCache - " + e);
+					EALog.w(TAG, "initCache - " + e);
 				}
 			}
 		}else {
@@ -126,7 +126,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 			try {
 				snapshot = mDiskLruCache.get(key);
 			} catch (IOException e) {
-				EALog.e(TAG, "getBitmapFromDiskCache - " + e);
+				EALog.w(TAG, "getBitmapFromDiskCache - " + e);
 			}
 		}
 		if (snapshot != null) {
@@ -199,11 +199,12 @@ public class DiskCache<K,V> implements Cache<K, V> {
 							in = null;
 						}
 					}
+					return value;
 				} 
 			} catch (final IOException e) {
-				EALog.e(TAG, "addBitmapToCache - " + e);
+				EALog.w(TAG, "addBitmapToCache - " + e);
 			} catch (Exception e) {
-				EALog.e(TAG, "addBitmapToCache - " + e);
+				EALog.w(TAG, "addBitmapToCache - " + e);
 			} finally {
 				try {
 					if (bos != null) {
@@ -238,7 +239,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 			try {
 				res = mDiskLruCache.remove(key);
 			} catch (final IOException e) {
-				EALog.e(TAG, "remove - " + e);
+				EALog.w(TAG, "remove - " + e);
 			} 
 			return res;
 		}
@@ -265,7 +266,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 					mDiskLruCache.delete();
 					EALog.d(TAG, "Disk cache cleared");
 				} catch (IOException e) {
-					EALog.e(TAG, "clearCache - " + e);
+					EALog.w(TAG, "clearCache - " + e);
 				}
 				mDiskLruCache = null;
 				initCache();
@@ -291,7 +292,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 				mDiskLruCache.flush();
 				EALog.d(TAG, "Disk cache flushed");
 			} catch (IOException e) {
-				EALog.e(TAG, "flush - " + e);
+				EALog.w(TAG, "flush - " + e);
 			}
 		}
 	}
@@ -319,7 +320,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 					EALog.d(TAG, "Disk cache closed");
 				}
 			} catch (IOException e) {
-				EALog.e(TAG, "close - " + e);
+				EALog.w(TAG, "close - " + e);
 			}
 		}
 	}
@@ -340,6 +341,7 @@ public class DiskCache<K,V> implements Cache<K, V> {
 				try {
 					initCache();
 				} catch (NotEnoughSpaceException e) {
+					EALog.w(TAG, e.toString());
 					return false;
 				}
 			else 

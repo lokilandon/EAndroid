@@ -15,11 +15,26 @@ public class ClassUtils {
 	public static Class<?> loadGenericSuperClass(Class<?> clazz){
 		Class<?> genericType = null;
 		Type type = clazz.getGenericSuperclass();
-		if(type instanceof ParameterizedType){
-			genericType = (Class<?>)((ParameterizedType)type).getActualTypeArguments()[0];
+		while(type != null){
+			if(type instanceof ParameterizedType){
+				try{
+					Type[] _type = ((ParameterizedType)type).getActualTypeArguments();
+					type = null;
+					if(_type[0] instanceof Class<?>){
+						genericType = (Class<?>)_type[0];
+					}else{
+						type = _type[0];
+					}
+				}catch(Exception e){
+					genericType = null;
+				}
+			}else{
+				type = null;
+			}
 		}
+
 		return genericType;
 	}
-	
-	
+
+
 }

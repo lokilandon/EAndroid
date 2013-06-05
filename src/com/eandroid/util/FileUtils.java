@@ -16,11 +16,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Observer;
 
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.StatFs;
 
 public class FileUtils {
+	private static final String TAG = "FileUtils";
 
 	public static boolean save(String folderPath,String fileName,InputStream in) {
 		return save(folderPath+System.getenv(File.separator)+fileName, in,true,null);
@@ -138,16 +140,22 @@ public class FileUtils {
 	public interface FileCallback {
 		void result(boolean result,String path,File file);
 	}
-	
-	public static long getUsableSpace(File path) {
-    	try{
-    		 final StatFs stats = new StatFs(path.getPath());
-    	     return (long) stats.getBlockSize() * (long) stats.getAvailableBlocks();
-    	}catch (Exception e) {
-			e.printStackTrace();
+
+	public static long getUsableSpace(File folder) {
+		try{
+			String path = folder.getPath();
+			if(path.startsWith(Environment.getDataDirectory().getPath())){
+				path = Environment.getDataDirectory().getPath();
+			}else if(path.startsWith(Environment.getDownloadCacheDirectory().getPath())){
+				path = Environment.getDownloadCacheDirectory().getParent();
+			}
+			final StatFs stats = new StatFs(path);
+			return (long) stats.getBlockSize() * (long) stats.getAvailableBlocks();
+		}catch (Exception e) {
+			EALog.w(TAG, e.toString());
 			return -1;
 		}
-       
-    }
+
+	}
 
 }

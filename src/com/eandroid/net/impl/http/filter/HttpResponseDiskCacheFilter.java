@@ -51,7 +51,7 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 		try {
 			diskCache = new DiskCache<String,InputStream>(param);
 		} catch (NotEnoughSpaceException e) {
-			EALog.e(TAG, "Http response Disk Cache dose not running. "+e);
+			EALog.w(TAG, "Http response Disk Cache dose not running. "+e);
 		}
 	}
 
@@ -96,7 +96,7 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 				return;
 			}
 		} catch (Exception e) {
-			EALog.e(TAG, "onWrite - " + e);
+			EALog.w(TAG, "onWrite - " + e);
 		} finally{
 			if(inputStream != null)
 				try {
@@ -155,10 +155,10 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 		InputStream in = (InputStream)responseContent;
 		InputStream cacheIn = null;
 		try {
-			diskCache.put(key, in);
-			cacheIn = diskCache.load(key);
+			if(diskCache.put(key, in) != null)
+				cacheIn = diskCache.load(key);
 		} catch(Exception e){
-			EALog.e(TAG, "onRead - " + e);
+			EALog.w(TAG, "onRead - " + e);
 		} finally{
 			if(cacheIn != null){
 				entity.setContent(cacheIn);

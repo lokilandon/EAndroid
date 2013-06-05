@@ -26,7 +26,7 @@ public class DatabaseUtils {
 			}
 
 		} catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}finally{
 			if(cursor!=null)
 				cursor.close();

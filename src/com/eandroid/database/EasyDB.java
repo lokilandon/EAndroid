@@ -80,7 +80,7 @@ public class EasyDB {
 		try{
 			return insert(entity, false);
 		}catch (SQLException e) {
-			EALog.e(TAG, e.getMessage());
+			EALog.w(TAG, e.getMessage());
 		}
 		return false;
 	}
@@ -93,7 +93,7 @@ public class EasyDB {
 		try{
 			return insert(entity, true);
 		}catch (SQLException e) {
-			EALog.e(TAG, e.getMessage());
+			EALog.w(TAG, e.getMessage());
 		}
 		return false;
 	}
@@ -178,7 +178,7 @@ public class EasyDB {
 		try{
 			return insertWithAssociateOrThrow(entity);                                                                   
 		}catch (SQLException e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}
@@ -453,7 +453,7 @@ public class EasyDB {
 			db.execSQL(sql.getSql(), sql.getBindArgsAsArray());
 			return true;
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}
@@ -474,7 +474,7 @@ public class EasyDB {
 			db.execSQL(sql.getSql(), sql.getBindArgsAsArray());
 			return true;
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}
@@ -495,7 +495,7 @@ public class EasyDB {
 			db.execSQL(sql.getSql(), sql.getBindArgsAsArray());
 			return true;
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}
@@ -516,7 +516,7 @@ public class EasyDB {
 			db.execSQL(sql.getSql(), sql.getBindArgsAsArray());
 			return true;
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}
@@ -537,7 +537,7 @@ public class EasyDB {
 			db.execSQL(sql.getSql(), sql.getBindArgsAsArray());
 			return true;
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return false;
 	}

@@ -93,13 +93,13 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 								if(bitmap != null)
 									return bitmap;
 							} catch (IOException e) {
-								EALog.e(TAG, "parseObject - "+e);
+								EALog.w(TAG, "parseObject - "+e);
 							}
 						}
 						String tempFileSavePath = EContext.getTempFilePath() + CommonUtils.generateSequenceNo() + ".tmp";
 						boolean res = FileUtils.save(tempFileSavePath, in, readObserver);
 						if(!res)
-							throw new ResponseParseException("An error occured while parse bitmap response."+config.toString());
+							throw new ResponseParseException("An error occured while (temp save)/read bitmap response."+config.toString());
 
 						//						try {
 						//							Thread.sleep(400);
@@ -107,7 +107,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 
 						Bitmap bitmap = BitmapCacheUtils.decode(tempFileSavePath,w,h, memoryCache);
 						if(bitmap == null){
-							throw new ResponseParseException("An error occured while parse bitmap response."+config.toString());
+							throw new ResponseParseException("An error occured while decode bitmap response."+config.toString());
 						}
 						return bitmap;
 					}

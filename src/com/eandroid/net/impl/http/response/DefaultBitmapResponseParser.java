@@ -38,7 +38,7 @@ public class DefaultBitmapResponseParser implements BitmapResponseParser{
 				if(bitmap != null)
 					return bitmap;
 			} catch (IOException e) {
-				EALog.e(TAG, "parseObject - "+e);
+				EALog.w(TAG, "parseObject - "+e);
 			}
 		}
 		String tempFileSavePath = EContext.getTempFilePath() + CommonUtils.generateSequenceNo() + ".tmp";

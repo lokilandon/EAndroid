@@ -54,7 +54,7 @@ public class Table {
 				return false;
 			}
 		}catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 			return false;
 		}finally{
 			db.endTransaction();

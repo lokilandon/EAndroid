@@ -44,7 +44,7 @@ public class CursorUtils {
 			}
 			return entity;
 		} catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return null;
 	}
@@ -76,7 +76,7 @@ public class CursorUtils {
 				cursor.moveToNext();
 			}
 		} catch (Exception e) {
-			EALog.e(TAG, e.toString());
+			EALog.w(TAG, e.toString());
 		}
 		return list;
 	}
