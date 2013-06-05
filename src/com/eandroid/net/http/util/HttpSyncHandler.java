@@ -11,6 +11,7 @@ import com.eandroid.net.NetIOHandler;
 import com.eandroid.net.Session;
 import com.eandroid.net.http.HttpSession;
 import com.eandroid.net.http.RequestEntity;
+import com.eandroid.net.http.ResponseEntity;
 import com.eandroid.net.impl.NetIOHandlerDecorator;
 import com.eandroid.net.impl.http.HttpRequestExecutionException;
 import com.eandroid.net.impl.http.HttpRequestSession;
@@ -46,7 +47,9 @@ public class HttpSyncHandler <Result>{
 			super(handler);
 		}
     	public void onRead(Session session,Object message) {
-    		outcome = message;
+    		ResponseEntity entity = (ResponseEntity)message;
+			if(entity != null)
+				outcome = entity.getContent();
     		super.onRead(session,message);
     	};
     	@Override

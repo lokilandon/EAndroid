@@ -28,6 +28,11 @@ public abstract class HttpHandlerDecorator<T> implements HttpHandler<T>{
 		if(decoratedHandler != null)
 			decoratedHandler.onSuccess(message);
 	}
+	
+	public void onCache(T message) {
+		if(decoratedHandler != null)
+			decoratedHandler.onCache(message);
+	};
 
 	@Override
 	public void onUploadProgress(int progress) {

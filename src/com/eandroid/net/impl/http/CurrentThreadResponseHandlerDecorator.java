@@ -87,7 +87,7 @@ public class CurrentThreadResponseHandlerDecorator<T> extends HttpHandlerDecorat
 					try{
 						handler.onSuccess(message);
 					}catch (ClassCastException e) {
-						throw new ClassCastException("An error occurs on handler httprequest result"+e.getMessage());
+						throw new ClassCastException("An error occurs on handler httprequest result: "+e.getMessage());
 					}
 				}
 			}

@@ -7,9 +7,8 @@
  */
 package com.eandroid.net.http.response;
 
-import java.io.IOException;
 
-public class ResponseParseException extends IOException{
+public class ResponseParseException extends RuntimeException{
 
 	/**
 	 * 

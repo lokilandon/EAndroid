@@ -23,6 +23,7 @@ import android.widget.ImageView;
 
 import com.eandroid.cache.impl.DiskCache.DiskCacheParams;
 import com.eandroid.cache.impl.MemoryCache.MemoryCacheParams;
+import com.eandroid.net.http.HttpConnector;
 import com.eandroid.net.http.util.HttpParams;
 import com.eandroid.net.http.util.TaskControlCenter;
 import com.eandroid.net.impl.http.ResponseFuture;
@@ -59,20 +60,24 @@ public class ViewImageLoader{
 	private static volatile ViewImageLoader instance;
 
 	public static ViewImageLoader getInstance(Context context) {
+		return getInstance(context, null);
+	}
+	
+	public static ViewImageLoader getInstance(Context context,HttpConnector connector) {
 		if(instance == null){
 			synchronized (ViewImageLoader.class) {
 				if(instance == null)
-					instance = new ViewImageLoader(context);
+					instance = new ViewImageLoader(context,connector);
 			}
 		}
 		return instance;
 	}
 
-	private ViewImageLoader(Context context){
-		initImageLoader(context.getResources());
+	private ViewImageLoader(Context context,HttpConnector connector){
+		initImageLoader(context.getResources(),connector);
 	}
 
-	private void initImageLoader(Resources resources){		
+	private void initImageLoader(Resources resources,HttpConnector connector){		
 		mResources = resources;
 		if(mImageLoader != null)
 			return;
@@ -86,7 +91,8 @@ public class ViewImageLoader{
 				mSocketReadTimeOut,
 				mDiskCacheExpiredTime,
 				mImageWidth,
-				mImageHeight);
+				mImageHeight,
+				connector);
 	}
 
 	public static void clearCache() {

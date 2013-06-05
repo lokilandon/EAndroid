@@ -13,7 +13,7 @@ import java.nio.charset.Charset;
 import java.util.Observer;
 
 import com.eandroid.content.EContext;
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.response.FileResponseParser;
 import com.eandroid.net.http.response.ResponseParseException;
 import com.eandroid.util.CommonUtils;
@@ -24,12 +24,12 @@ public class DefaultFileResponseParser implements FileResponseParser{
 	private final String tempFilePath = EContext.getTempFilePath() +"fileparser/";
 
 	@Override
-	public File parseObject(ResponseConfig<File> config, InputStream in,Charset defauCharset,
+	public File parseObject(RequestConfig<File> config, InputStream in,Charset defauCharset,
 			Observer readObserver) throws ResponseParseException {
 		File file = null;
 		boolean res = false;
 
-		if(config.isDownloadResponse()){
+		if(config.isDownloadRequest()){
 			res = FileUtils.save(config.getDownloadPath(), in, readObserver);
 			if(!res)
 				throw new ResponseParseException("Download failed.file save unsuccess.Check file's path access");

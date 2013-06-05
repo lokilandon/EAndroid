@@ -105,7 +105,6 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 			if(isClosed())
 				throw new SessionClosedException("Request session has been closed");
 			filterChain.read(this, responseEntity);
-			removeRequestEntity(requestEntity);
 		} catch (Exception e) {
 			if(responseEntity != null)
 				responseEntity.finish();
@@ -126,7 +125,6 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 	private void removeRequestEntity(RequestEntity entity){
 		synchronized (requestList) {
 			if(entity != null){
-				entity.release();
 				requestList.remove(entity);
 			}
 		}
@@ -222,7 +220,7 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClazz) {
+			Class<?> responseClazz) {
 		return httpConnector.generatePostEntity(url,
 				downloadPath,
 				params,
@@ -237,7 +235,7 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClazz) {
+			Class<?> responseClazz) {
 		return httpConnector.generateGetEntity(url,
 				downloadPath,
 				params,

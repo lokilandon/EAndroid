@@ -12,7 +12,7 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Observer;
 
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.response.ObjectResponseParser;
 import com.eandroid.net.http.response.ResponseParseException;
 import com.eandroid.util.IOUtils;
@@ -20,13 +20,13 @@ import com.eandroid.util.IOUtils;
 public class DefaultObjectResponseParser implements ObjectResponseParser{
 
 	@Override
-	public Object parseObject(ResponseConfig<Object> config, InputStream in,Charset defauCharset,
+	public Object parseObject(RequestConfig<Object> config, InputStream in,Charset defauCharset,
 			Observer readObserver)
 					throws ResponseParseException {
 		Class<?> clazz = config.getResponseClass();
 		if(String.class != clazz)
 			throw new ResponseParseException("Default object response parser only support parse String.class");
-		Charset charset = config.getCharset() == null ? defauCharset:config.getCharset();
+		Charset charset = config.getRequestCharset() == null ? defauCharset:config.getRequestCharset();
 		try {
 			return IOUtils.inputStream2String(in, charset, readObserver);
 		} catch (IOException e) {

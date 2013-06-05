@@ -54,9 +54,9 @@ import com.eandroid.net.http.HttpConnectorClosedException;
 import com.eandroid.net.http.HttpRequestException;
 import com.eandroid.net.http.HttpSession;
 import com.eandroid.net.http.RequestEntity;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.ResponseEntity;
 import com.eandroid.net.http.SessionClosedException;
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
 import com.eandroid.net.http.httpclient.entity.mime.GZipEntity;
 import com.eandroid.net.http.httpclient.entity.mime.content.StringBody;
 import com.eandroid.net.http.response.ResponseParser;
@@ -65,7 +65,6 @@ import com.eandroid.net.http.util.HttpParams;
 import com.eandroid.net.http.util.HttpRequestParamsWriter;
 import com.eandroid.net.http.util.WriteObserver;
 import com.eandroid.util.EncoderUtils;
-import com.eandroid.util.StringUtils;
 
 public class HttpClientConnector implements HttpConnector{
 	private DefaultHttpClient client;
@@ -225,7 +224,7 @@ public class HttpClientConnector implements HttpConnector{
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClass){
+			Class<?> responseClass){
 		HttpPost post = new HttpPost(url);
 		Map<String,String> headers = null;
 		Map<String,Object> reqParams = null;
@@ -233,7 +232,7 @@ public class HttpClientConnector implements HttpConnector{
 		if(params != null){
 			headers = params.getHeaders();
 			reqParams = params.getReqParam();
-			requestCharset = params.getCharet();
+			requestCharset = params.getRequestCharset();
 		}
 		if(headers != null){
 			Set<String> keySet = headers.keySet();
@@ -243,7 +242,7 @@ public class HttpClientConnector implements HttpConnector{
 				post.addHeader(keyString, headers.get(keyString));
 			}
 		}
-		HttpResponseConfig<T> config = new HttpResponseConfig<T>(downloadPath, responseClass,parser,params);
+		RequestConfig<T> config = new RequestConfigImpl<T>(downloadPath, responseClass,parser,params);
 		String key = generateRequestKey(url,params.getReqParam());
 		return new HttpClientRequestEntity(post,session, reqParams,requestCharset,config,key);
 	}
@@ -254,7 +253,7 @@ public class HttpClientConnector implements HttpConnector{
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClass) {
+			Class<?> responseClass) {
 		HttpGet get = new HttpGet(url);
 		Map<String,String> headers = null;
 		Map<String,Object> reqParams = null;
@@ -262,7 +261,7 @@ public class HttpClientConnector implements HttpConnector{
 		if(params != null){
 			headers = params.getHeaders();
 			reqParams = params.getReqParam();
-			requestCharset = params.getCharet();
+			requestCharset = params.getRequestCharset();
 		}
 		if(headers != null){
 			Set<String> keySet = headers.keySet();
@@ -272,14 +271,14 @@ public class HttpClientConnector implements HttpConnector{
 				get.addHeader(keyString, headers.get(keyString));
 			}
 		}
-		HttpResponseConfig<T> config = new HttpResponseConfig<T>(downloadPath, responseClass,parser,params);
+		RequestConfig<T> config = new RequestConfigImpl<T>(downloadPath, responseClass,parser,params);
 		String key = generateRequestKey(url,params.getReqParam());
 		return new HttpClientRequestEntity(get,session, reqParams,requestCharset,config,key);
 	}
 
 	@Override
 	public ResponseEntity generateResonseEntity(RequestEntity requestEntity) {
-		ResponseConfig<?> config = requestEntity.getResponseConfig();
+		RequestConfig<?> config = requestEntity.getConfig();
 		ResponseEntity entity = new HttpClientResponseEntity(config, null,requestEntity.key());
 		return entity;
 	}
@@ -313,9 +312,8 @@ public class HttpClientConnector implements HttpConnector{
 			HttpResponse response = client.execute(request,context);
 			if(response.getStatusLine().getStatusCode() == HttpStatus.SC_OK){
 				HttpEntity httpEntity = response.getEntity();
-				ResponseConfig<?> config = httpRequestEntity.getResponseConfig();
+				RequestConfig<?> config = httpRequestEntity.getConfig();
 				HttpClientResponseEntity responseEntity = new HttpClientResponseEntity(config, httpEntity,requestEntity.key());
-				//				responseEntity.set
 				session.resonse(responseEntity,httpRequestEntity);
 			}else{
 				throw new HttpResponseException(response.getStatusLine().getStatusCode(),
@@ -339,21 +337,21 @@ public class HttpClientConnector implements HttpConnector{
 		private final Map<String, ? extends Object> paramMap;
 		private final Map<String, String> httpParamMap;
 		private final Charset charset;
-		private final ResponseConfig<?> responseConfig;
+		private final RequestConfig<?> config;
 		private final String key;
 
 		private HttpClientRequestEntity(HttpUriRequest request,
 				HttpSession session,
 				Map<String, ? extends Object> param,
 				Charset charset,
-				ResponseConfig<?> responseConfig,
+				RequestConfig<?> config,
 				String key){
 			this.request = request;
 			this.session = session;
 			this.paramMap = param;
 			this.httpParamMap = new HashMap<String, String>();
 			this.charset = charset;
-			this.responseConfig = responseConfig;
+			this.config = config;
 			this.key = key;
 		}
 
@@ -403,11 +401,15 @@ public class HttpClientConnector implements HttpConnector{
 		}
 
 		@Override
-		public ResponseConfig<?> getResponseConfig() {
-			return responseConfig;
+		public RequestConfig<?> getConfig() {
+			return config;
 		}
 
-		
+		@Override
+		public String toString() {
+			String paramStr = convertHttpParamKey(paramMap);
+			return request.getURI().toString() + paramStr==null?"":paramStr;
+		}
 	}
 
 	public static class HttpClientResponseEntity implements ResponseEntity{
@@ -416,11 +418,11 @@ public class HttpClientConnector implements HttpConnector{
 		private Header contentType;
 		private long contentLength;
 		private Object content;
-		private ResponseConfig<?> config;
+		private RequestConfig<?> config;
 		private boolean isCache;
 		private String requestKey;
 
-		public HttpClientResponseEntity(ResponseConfig<?> config,HttpEntity httpEntity,String key){
+		public HttpClientResponseEntity(RequestConfig<?> config,HttpEntity httpEntity,String key){
 			this.requestKey = key;
 			this.config = config;
 			this.entity = httpEntity;
@@ -489,107 +491,19 @@ public class HttpClientConnector implements HttpConnector{
 		}
 
 		@Override
-		public ResponseConfig<?> getConfig() {
+		public RequestConfig<?> getConfig() {
 			return config;
 		}
-	}
 
-	public class HttpResponseConfig<T> implements ResponseConfig<T> {
-		private final String downPath;
-		private final Charset charset;
-		private final Class<T> responseClass;
-		private final ResponseParser<T> parser;
-		private Map<String, Object> attr;
-		private Boolean continueOnCacheHit;
-		private Boolean cache;
-		private Long cacheExpiredTIme;
-
-		public HttpResponseConfig(String downloadPath,Class<T> responseClass,ResponseParser<T> parser,HttpParams params){
-			this.downPath = downloadPath;
-			if(params != null){
-				this.charset = params.getResponseCharet();
-				if(params.hasConfigCacheExpired())
-					cacheExpiredTIme = params.getCacheExpired();
-				if(params.hasConfigContinueOnCacheHit())
-					continueOnCacheHit = params.isContinueOnCacheHit();
-				if(params.hasConfigResponseCache())
-					cache = params.isResponseCache();
-			}else {
-				this.charset = null;
+		@Override
+		public String toString() {
+			if(content != null)
+				return content.toString();
+			else{
+				return super.toString();
 			}
-			this.attr = params.getConfigParam();
-			this.responseClass = responseClass;
-			this.parser = parser;
-
 		}
-
-		@Override
-		public Charset getCharset() {
-			return charset;
-		}
-		@Override
-		public Class<T> getResponseClass() {
-			return responseClass;
-		}
-		@Override
-		public ResponseParser<T> getResponseParser() {
-			return parser;
-		}
-		@Override
-		public void setAttribute(String key, Object name) {
-			if(attr == null)
-				attr = new HashMap<String, Object>();
-			attr.put(key, name);
-		}
-		@Override
-		public Object getAttribute(String key) {
-			if(attr == null)
-				return null;
-			return attr.get(key);
-		}
-
-		@Override
-		public boolean isDownloadResponse() {
-			return StringUtils.isNotEmpty(downPath);
-		}
-
-		@Override
-		public String getDownloadPath() {
-			return downPath;
-		}
-
-		@Override
-		public boolean isResponseCache() {
-			return cache;
-		}
-
-		@Override
-		public boolean isContinueOnCacheHit() {
-			return continueOnCacheHit;
-		}
-
-		@Override
-		public long cacheExpiredTime() {
-			return cacheExpiredTIme;
-		}
-
-		@Override
-		public boolean hasConfigResponseCache() {
-			return cache != null;
-		}
-
-		@Override
-		public boolean hasConfigContinueOnCacheHit() {
-			return continueOnCacheHit != null;
-		}
-
-		@Override
-		public boolean hasConfigCacheExpiredTime() {
-			return cacheExpiredTIme != null;
-		}
-
 	}
-
 
 	@Override
 	public void close() {
@@ -620,8 +534,8 @@ public class HttpClientConnector implements HttpConnector{
 		}
 		return key;
 	}
-	
-	private String convertHttpParamKey(Map<String, ? extends Object> map){
+
+	private static String convertHttpParamKey(Map<String, ? extends Object> map){
 		if(map == null || map.isEmpty())
 			return null;
 		StringBuilder sb = new StringBuilder();
@@ -632,11 +546,11 @@ public class HttpClientConnector implements HttpConnector{
 			String key = it.next();
 			Object value = map.get(key);
 			if(value instanceof String){
-				sb.append(key).append(value);
+				sb.append(key).append(":").append(value).append(",");
 			}else if(value instanceof StringBody){
 				String str = ((StringBody)value).getText();
 				if(str != null){
-					sb.append(key).append(str);
+					sb.append(key).append(":").append(str).append(",");
 				}else{
 					noKey = true;
 					break;

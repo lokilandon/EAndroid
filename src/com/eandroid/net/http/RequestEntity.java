@@ -10,10 +10,11 @@ package com.eandroid.net.http;
 import java.nio.charset.Charset;
 import java.util.Map;
 
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.response.ResponseParser;
+import com.eandroid.net.http.util.HttpParams;
 
 public interface RequestEntity {		
-	
+
 	/**
 	 * 获取请求的唯一键
 	 * @return
@@ -24,7 +25,7 @@ public interface RequestEntity {
 	 * @return
 	 */
 	public HttpSession getRequestSession();
-	
+
 	/**
 	 * 增加头信息
 	 * @param name
@@ -51,9 +52,29 @@ public interface RequestEntity {
 	 * @return
 	 */
 	public Charset getCharset();
-	
+
 	/**
 	 * 获取应答的一些参数（如解析字符集编码）
 	 */
-	public ResponseConfig<?> getResponseConfig();
+	public RequestConfig<?> getConfig();
+
+	public interface RequestConfig<T> {
+
+		public boolean isDownloadRequest();
+
+		public String getDownloadPath();
+
+		public Charset getRequestCharset();
+
+		public Class<?> getResponseClass();
+
+		public ResponseParser<T> getResponseParser();
+
+		public void setAttribute(String key,Object name);
+
+		public Object getAttribute(String key);
+
+		public HttpParams getHttpParams();
+
+	}
 }

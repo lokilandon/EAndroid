@@ -10,18 +10,21 @@ package com.eandroid.net.impl.http.filter;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Observer;
 
 import android.graphics.Bitmap;
 
 import com.eandroid.cache.Cache;
 import com.eandroid.cache.impl.DiskCache;
-import com.eandroid.cache.impl.NotEnoughSpaceException;
 import com.eandroid.cache.impl.DiskCache.DiskCacheParams;
+import com.eandroid.cache.impl.NotEnoughSpaceException;
 import com.eandroid.net.Session;
 import com.eandroid.net.http.HttpConnector;
 import com.eandroid.net.http.RequestEntity;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.ResponseEntity;
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.util.HttpParams;
+import com.eandroid.net.http.util.ReadObserver;
 import com.eandroid.net.impl.http.HttpRequestSession;
 import com.eandroid.util.EALog;
 
@@ -61,12 +64,6 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			super.onWrite(next, session, message);
 			return;
 		}
-		
-		ResponseConfig<?> config = message.getResponseConfig();
-		if((config.hasConfigResponseCache() && !config.isResponseCache())){
-			super.onWrite(next, session, message);
-			return;
-		}
 
 		String key = message.key();
 		if(key == null){
@@ -74,12 +71,32 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			return;
 		}
 
+		RequestConfig<?> config = message.getConfig();
+		HttpParams httpParams = config.getHttpParams();
+		Class<?> resultClass = config.getResponseClass();
+		boolean isCache = false;
+		if(httpParams != null && httpParams.hasConfigResponseCache()){
+			isCache = httpParams.isResponseCache();
+		}else if(resultClass != null){
+			if(resultClass == File.class){
+				isCache = cacheFile;
+			}else if(resultClass == Bitmap.class){
+				isCache = cacheBitmap;
+			}else{
+				isCache = cacheOtherObject;
+			}
+		}
+		if(!isCache){
+			super.onWrite(next, session, message);
+			return;
+		}
+
 		long cacheExpiredTime = cacheExpired;
-		if(config.hasConfigCacheExpiredTime())
-			cacheExpiredTime = config.cacheExpiredTime();
+		if(httpParams != null && httpParams.hasConfigCacheExpired())
+			cacheExpiredTime = httpParams.getCacheExpired();
 		boolean continueOnCacheHit = this.continueOnCacheHit;
-		if(config.hasConfigContinueOnCacheHit())
-			continueOnCacheHit = config.isContinueOnCacheHit();
+		if(httpParams != null && httpParams.hasConfigContinueOnCacheHit())
+			continueOnCacheHit = httpParams.isContinueOnCacheHit();
 
 		boolean cacheHit = false;
 		ResponseEntity cacheEntity = null;
@@ -93,7 +110,6 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 				cacheEntity.setCacheContent(inputStream);
 				inputStream = null;
 				((HttpRequestSession)session).resonse(cacheEntity, message);
-				return;
 			}
 		} catch (Exception e) {
 			EALog.w(TAG, "onWrite - " + e);
@@ -108,13 +124,8 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 	}
 
 	public void onRead(NextFilterSelector next, Session session, ResponseEntity entity){
-		ResponseConfig<?> config = entity.getConfig();
+		RequestConfig<?> config = entity.getConfig();
 		if(diskCache == null){
-			super.onRead(next, session,entity);
-			return;
-		}
-		
-		if(config.hasConfigResponseCache() && !config.isResponseCache()){
 			super.onRead(next, session,entity);
 			return;
 		}
@@ -132,10 +143,12 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			return;
 		}
 
-		Class<?> resultClass = entity.getConfig().getResponseClass();
-		
 		boolean isCache = false;
-		if(resultClass != null){
+		HttpParams httpParams = config.getHttpParams();
+		Class<?> resultClass = entity.getConfig().getResponseClass();
+		if(httpParams.hasConfigResponseCache()){
+			isCache = httpParams.isResponseCache();
+		}else if(resultClass != null){
 			if(resultClass == File.class){
 				isCache = cacheFile;
 			}else if(resultClass == Bitmap.class){
@@ -143,8 +156,6 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			}else{
 				isCache = cacheOtherObject;
 			}
-			if(config.hasConfigResponseCache())
-				isCache = config.isResponseCache();
 		}
 
 		if(!isCache){
@@ -152,10 +163,15 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			return;
 		}
 
+		Observer observer = null;
+		if(httpParams != null && httpParams.isListenDownload()){
+			observer = new ReadObserver(session, session.getHandler(), entity.getContentLength());
+		}
+		
 		InputStream in = (InputStream)responseContent;
 		InputStream cacheIn = null;
 		try {
-			if(diskCache.put(key, in) != null)
+			if(diskCache.put(key, in,observer) != null)
 				cacheIn = diskCache.load(key);
 		} catch(Exception e){
 			EALog.w(TAG, "onRead - " + e);
@@ -172,8 +188,9 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			} catch (IOException e) {}
 		}
 		super.onRead(next, session,entity);
+
 	};
-	
+
 	public void setCacheExpired(long expiredTime){
 		this.cacheExpired = expiredTime;
 	}
@@ -207,7 +224,7 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 			throw new IllegalStateException(TAG + "setDiskCacheSize - fail!Diskcache has been inited");
 		}
 	}
-	
+
 	public void clearCache(){
 		diskCache.clear();
 	}
@@ -219,7 +236,7 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 	public void closeCache(){
 		diskCache.close();
 	}
-	
+
 	public Cache<String, InputStream> getCache(){
 		return diskCache;
 	}

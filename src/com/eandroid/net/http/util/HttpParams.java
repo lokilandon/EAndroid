@@ -12,7 +12,9 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 
 import com.eandroid.net.http.httpclient.entity.mime.content.ByteArrayBody;
 import com.eandroid.net.http.httpclient.entity.mime.content.FileBody;
@@ -51,6 +53,20 @@ public class HttpParams {
 	public HttpParams putConfig(String key, Object value){
 		if(key != null && value != null) {
 			config.put(key, value);
+		}
+		return this;
+	}
+
+	public HttpParams putAll(Map<String,? extends Object> map){
+		if(map != null && !map.isEmpty()) {
+			Set<String> keySet = map.keySet();
+			Iterator<String> itKey = keySet.iterator();
+			while(itKey.hasNext()){
+				String key = itKey.next();
+				Object value = map.get(key);
+				if(key != null && value != null)
+					put(key, value);
+			}
 		}
 		return this;
 	}
@@ -98,7 +114,7 @@ public class HttpParams {
 	public Map<String,Object> getReqParam(){
 		return params;
 	}
-	
+
 	public Map<String, Object> getConfigParam(){
 		return config;
 	}
@@ -146,13 +162,34 @@ public class HttpParams {
 		putConfig("cacheExpiredTIme", cacheExpiredTIme);
 		return this;
 	}
+	
+	public HttpParams configListenUpload(boolean listen){
+		putConfig("listenUpload", listen);
+		return this;
+	}
+	
+	/**
+	 * 设置是否监听下载进度
+	 * 需同时设置头信息Accept-Encoding为identity
+	 * 
+	 * 若http请求，返回应答的头信息，Content-Length为-1时不能监听
+	 * 当返回应答的Content-Encoding不为identity（如gzip、compress），或者Transfer-Encoding为chunked时<br/>
+	 * Content-Length始终为-1。
+	 * 
+	 * @param listen
+	 * @return
+	 */
+	public HttpParams configListenDownload(boolean listen){
+		putConfig("listenDownload", listen);
+		return this;
+	}
 
 	@SuppressWarnings("unchecked")
 	public Map<String,String> getHeaders(){
 		return config.get("header")== null ? null : (Map<String,String>)config.get("header");
 	}
 
-	public Charset getCharet(){
+	public Charset getRequestCharset(){
 		return config.get("charset")== null ? null : (Charset)config.get("charset");
 	}
 
@@ -182,6 +219,14 @@ public class HttpParams {
 
 	public long getCacheExpired(){
 		return config.get("cacheExpiredTIme") == null ? 0 : (Long)config.get("cacheExpiredTIme");
+	}
+	
+	public boolean isListenDownload(){
+		return config.get("listenDownload") == null?false:(Boolean)config.get("listenDownload");
+	}
+	
+	public boolean isListenUpload(){
+		return config.get("listenUpload") == null?false:(Boolean)config.get("listenUpload");
 	}
 
 }

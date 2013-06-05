@@ -11,6 +11,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.util.AttributeSet;
 
+import com.eandroid.net.http.HttpConnector;
 import com.eandroid.net.http.util.HttpParams;
 import com.eandroid.util.StringUtils;
 import com.eandroid.view.util.ViewImageLoader;
@@ -34,6 +35,11 @@ public class AsyncImageView extends RecyclingImageView{
 	public AsyncImageView(Context context, AttributeSet attrs, int defStyle) {
 		super(context, attrs, defStyle);
 		initImageLoader(context);
+	}
+	
+	public static void initImageLoader(Context context,HttpConnector connector){
+		if(mImageLoader == null)
+			mImageLoader = ViewImageLoader.getInstance(context,connector);	
 	}
 
 	private void initImageLoader(Context context){

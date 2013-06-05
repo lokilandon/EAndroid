@@ -142,7 +142,7 @@ public class EasyDB {
 						if(!pkConflict){
 							throw e;
 						}else{
-							EALog.d(TAG, e.toString());
+							EALog.w(TAG, e.toString());
 						}
 					}
 					//如果外键为空，则将刚刚插入对象的主键赋值给外键

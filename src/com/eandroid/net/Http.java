@@ -43,7 +43,6 @@ import com.eandroid.net.http.util.HttpSyncHandler;
 import com.eandroid.net.http.util.SerialExecutor;
 import com.eandroid.net.http.util.TaskControlCenter;
 import com.eandroid.net.impl.BasicNetIOFilterChain;
-import com.eandroid.net.impl.filter.LogFilter;
 import com.eandroid.net.impl.http.CurrentThreadResponseHandlerDecorator;
 import com.eandroid.net.impl.http.HttpClientConnector;
 import com.eandroid.net.impl.http.HttpRequestExecutionException;
@@ -55,7 +54,6 @@ import com.eandroid.net.impl.http.filter.HttpResponseParseFilter;
 import com.eandroid.net.impl.http.response.DefaultBitmapResponseParser;
 import com.eandroid.net.impl.http.response.DefaultFileResponseParser;
 import com.eandroid.util.ClassUtils;
-import com.eandroid.util.EALog;
 
 
 public class Http {
@@ -69,10 +67,11 @@ public class Http {
 	private AtomicBoolean closed = new AtomicBoolean();
 
 	/**应答解析默认设置项*/
-	private static ObjectResponseParser defaultObjectParser;
+	private static ResponseParser<Object> defaultObjectParser;
 	private static FileResponseParser defaultFileParser = new DefaultFileResponseParser();
 	private static BitmapResponseParser defaultBitmapParser = new DefaultBitmapResponseParser();
 	private static Charset defaultResponseContentCharset = Charset.forName("utf-8");
+
 	//应答缓存设置
 	private static boolean defaultCacheFile = false;
 	private static boolean defaultCacheBitmap = false;
@@ -102,7 +101,7 @@ public class Http {
 
 
 	private volatile static Map<String,Http> instanceMap;
-	
+
 	/**
 	 * 打开Http客户端
 	 * @return 返回默认的客户端，没有则新建一个
@@ -117,7 +116,16 @@ public class Http {
 	 * @return 返回相应的客户端，没有则新建一个
 	 */
 	public static Http open(String name){
-		return open(name,null);
+		return open(name,null,null);
+	}
+	
+	/**
+	 * 打开Http客户端
+	 * @param name 客户端名称
+	 * @return 返回相应的客户端，没有则新建一个
+	 */
+	public static Http open(String name,HttpConnector connector){
+		return open(name,null,connector);
 	}
 
 	/**
@@ -126,7 +134,7 @@ public class Http {
 	 * @param cookieStore 此客户端需要设置的Cookie 
 	 * @return 返回相应的客户端，没有则新建一个
 	 */
-	public static Http open(String key,CookieStore cookieStore){
+	public static Http open(String key,CookieStore cookieStore,HttpConnector connector){
 		if(instanceMap == null){
 			synchronized (Http.class) {
 				if(instanceMap == null){
@@ -138,7 +146,7 @@ public class Http {
 		if(client == null || client.isClosed()){
 			synchronized (Http.class) {
 				if(instanceMap.get(key) == null){
-					client = new Http(key);
+					client = new Http(key,connector);
 					instanceMap.put(key, client);
 				}
 			}
@@ -148,14 +156,21 @@ public class Http {
 		}
 		return client;
 	}
-	
-	private Http(String key){
+
+	private Http(String key,HttpConnector connector){
 		TAG = key;
 		filterChain = createFilterChain();
-		connector = createHttpConnector();
+		if(connector == null)
+			this.connector = createHttpConnector();
+		else 
+			this.connector = connector;
 		THREAD_POOL_EXECUTOR = createThreadPoolExecutor();
 		SERIAL_EXECUTOR = new SerialExecutor(THREAD_POOL_EXECUTOR);
 		initFilterChain();
+	}
+
+	public HttpConnector getConnector() {
+		return connector;
 	}
 
 	private void initFilterChain(){
@@ -167,7 +182,7 @@ public class Http {
 		filterChain.addFilter(responseDiskCacheFilter);
 		responseParserFilter = createReponseParseFilter();
 		filterChain.addFilter(responseParserFilter);
-		filterChain.addFilter(new LogFilter());
+		//		filterChain.addFilter(new LogFilter());
 		filterChain.addAllFilters(filters);
 	}
 
@@ -196,7 +211,7 @@ public class Http {
 	public static void clearDefaultFilter(){
 		filters.clear();
 	}
-	
+
 	/**
 	 * 添加过滤器
 	 * @param filter
@@ -365,7 +380,7 @@ public class Http {
 	 * 对所有之后新生成的Http客户端都会生效，对于已打开过的Http客户端，需要调用reset()方法才会生效
 	 * @param ObjectResponseParser parser
 	 */
-	public static void configDefaultObjectResponseParser(ObjectResponseParser parser){
+	public static void configDefaultObjectResponseParser(ResponseParser<Object> parser){
 		defaultObjectParser = parser;
 	}
 
@@ -432,9 +447,9 @@ public class Http {
 	public static void configDefaultCacheDirectoryPath(String cacheDirectoryPath){
 		Http.defaultCacheDirectoryPath = cacheDirectoryPath;
 	}
-	
-	
-	
+
+
+
 
 	/**
 	 * 设置线程池核心线程数量<br/>
@@ -589,7 +604,7 @@ public class Http {
 		responseParserFilter.setDefaultCharset(responseContentCharset);
 		return this;
 	}
-	
+
 	/**
 	 * 设置需要缓存的类型<br/>
 	 * 默认均不缓存
@@ -598,9 +613,11 @@ public class Http {
 	 * @param cacheOtherObject
 	 */
 	public Http configResponseCache(boolean cacheBitmap,boolean cacheFile,boolean cacheOtherObject){
-		responseDiskCacheFilter.setCacheBitmap(cacheBitmap);
-		responseDiskCacheFilter.setCacheFile(cacheFile);
-		responseDiskCacheFilter.setCacheOtherObject(cacheOtherObject);
+		if(responseDiskCacheFilter != null){
+			responseDiskCacheFilter.setCacheBitmap(cacheBitmap);
+			responseDiskCacheFilter.setCacheFile(cacheFile);
+			responseDiskCacheFilter.setCacheOtherObject(cacheOtherObject);
+		}
 		return this;
 	}
 
@@ -611,8 +628,10 @@ public class Http {
 	 * @param cacheExpiredTime 缓存的过期时间
 	 */
 	public Http configResponseCache(boolean continueOnCacheHit,long cacheExpiredTime){
-		responseDiskCacheFilter.setCacheExpired(cacheExpiredTime);
-		responseDiskCacheFilter.setContinueOnCacheHit(continueOnCacheHit);
+		if(responseDiskCacheFilter != null){
+			responseDiskCacheFilter.setCacheExpired(cacheExpiredTime);
+			responseDiskCacheFilter.setContinueOnCacheHit(continueOnCacheHit);
+		}
 		return this;
 	}
 
@@ -623,7 +642,9 @@ public class Http {
 	 * @param cacheDirectoryName
 	 */
 	public Http configResponseCacheDirectoryPath(String diskCacheDirectoryPath){
-		responseDiskCacheFilter.setDiskCacheDirectoryPath(diskCacheDirectoryPath);
+		if(responseDiskCacheFilter != null){
+			responseDiskCacheFilter.setDiskCacheDirectoryPath(diskCacheDirectoryPath);
+		}
 		return this;
 	}
 
@@ -636,7 +657,9 @@ public class Http {
 	 * @param maxCacheSize 单位 byte
 	 */
 	public Http configResponseCacheMaxSize(long size){
-		responseDiskCacheFilter.setDiskCacheSize(size);
+		if(responseDiskCacheFilter != null){
+			responseDiskCacheFilter.setDiskCacheSize(size);
+		}
 		return this;
 	}
 
@@ -674,19 +697,22 @@ public class Http {
 			return null;
 		return responseDiskCacheFilter.getCache();
 	}
-	
+
 	public Http clearCache() {
-		responseDiskCacheFilter.clearCache();
+		if(responseDiskCacheFilter != null)
+			responseDiskCacheFilter.clearCache();
 		return this;
 	}
 
 	public Http flushCache() {
-		responseDiskCacheFilter.flushCache();
+		if(responseDiskCacheFilter != null)
+			responseDiskCacheFilter.flushCache();
 		return this;
 	}
-	
+
 	public Http closeCache() {
-		responseDiskCacheFilter.closeCache();
+		if(responseDiskCacheFilter != null)
+			responseDiskCacheFilter.closeCache();
 		return this;
 	}
 
@@ -702,19 +728,11 @@ public class Http {
 		closeCache();
 		THREAD_POOL_EXECUTOR.shutdown();
 	}
-	
-	public static void debug(boolean debug){
-		if(debug)
-			EALog.TAG_Filter = EALog.DEBUG;
-		else
-			EALog.TAG_Filter = EALog.ERROR;
-	}
-
 
 	public String generateRequestKey(String url,Map<String , ? extends Object> paramMap){
 		return connector.generateRequestKey(url, paramMap);
 	}
-	
+
 	/**
 	 * 同步get请求
 	 * @param url
@@ -723,15 +741,15 @@ public class Http {
 	public <T> T getSync(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz) throws HttpRequestExecutionException{
+			Class<?> responseClazz) throws HttpRequestExecutionException{
 		if(isClosed())
 			throw new IllegalStateException("Http has been Closed");
-		
+
 		if(responseClazz == null){
 			throw new IllegalArgumentException("Unknow response class,please set the reponse class ");
 		}
-		
-		HttpRequestSession session = createRequestSession(connector,filterChain,createResponseHandler(null));
+
+		HttpRequestSession session = createRequestSession(connector,filterChain,null);
 		HttpSyncHandler<T> requesthandler = new HttpSyncHandler<T>(session);
 		RequestEntity requestEntity = session.generateGetEntity(url,
 				null,
@@ -741,7 +759,7 @@ public class Http {
 				responseClazz);
 		return requesthandler.request(requestEntity);
 	}
-	
+
 	/**
 	 * 异步get请求（串行）
 	 * @param url
@@ -763,11 +781,11 @@ public class Http {
 	public <T> ResponseFuture<T> getSerial(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler){
 		return get(url,param,parser, responseClazz,handler,true,null);
 	}
-	
+
 	/**
 	 * 异步get请求（并行）
 	 * @param url
@@ -807,7 +825,7 @@ public class Http {
 	public <T> ResponseFuture<T> get(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler){
 		return get(url,param,parser, responseClazz,handler,false,null);
 	}
@@ -815,7 +833,7 @@ public class Http {
 	public <T> ResponseFuture<T> get(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler,
 			boolean isSerial,
 			TaskControlCenter controlCenter){
@@ -826,7 +844,7 @@ public class Http {
 			String downPath,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler,
 			boolean isSerial,
 			TaskControlCenter controlCenter){
@@ -864,7 +882,7 @@ public class Http {
 
 		return future;
 	}
-	
+
 	/**
 	 * 同步post请求
 	 * @param url
@@ -873,10 +891,10 @@ public class Http {
 	public <T> T postSync(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz) throws HttpRequestExecutionException {
+			Class<?> responseClazz) throws HttpRequestExecutionException {
 		if(isClosed())
 			throw new IllegalStateException("Http has been Closed");
-		HttpRequestSession session = createRequestSession(connector,filterChain,createResponseHandler(null));
+		HttpRequestSession session = createRequestSession(connector,filterChain,null);
 		HttpSyncHandler<T> requesthandler = new HttpSyncHandler<T>(session);
 		if(responseClazz == null){
 			throw new IllegalArgumentException("Unknow response class,please set the reponse class ");
@@ -889,7 +907,7 @@ public class Http {
 				responseClazz);
 		return requesthandler.request(requestEntity);
 	}
-	
+
 	/**
 	 * 异步post请求(串行)
 	 * @param url
@@ -911,7 +929,7 @@ public class Http {
 	public <T> ResponseFuture<T> postSerial(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler){
 		return post(url,param, parser, responseClazz,handler,true);
 	}
@@ -942,7 +960,7 @@ public class Http {
 	public <T> ResponseFuture<T> post(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler){
 		return post(url,param, parser, responseClazz,handler,false);
 	}
@@ -950,7 +968,7 @@ public class Http {
 	public <T> ResponseFuture<T> post(String url,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler,
 			boolean isSerial){
 		return post(url,null, param, parser,responseClazz,handler,isSerial,null);
@@ -960,7 +978,7 @@ public class Http {
 			String downPath,
 			HttpParams param,
 			ResponseParser<T> parser,
-			Class<T> responseClazz,
+			Class<?> responseClazz,
 			HttpHandler<T> handler,
 			boolean isSerial,
 			TaskControlCenter controlCenter){
@@ -1006,19 +1024,37 @@ public class Http {
 		return post(url, null, param, null,null,handler,false,null);
 	}
 
-	public <T> ResponseFuture<T> download(String url,
+	public ResponseFuture<File> download(String url,
 			String path,
 			HttpParams param,
-			DownloadHandler<T> handler){
-		return get(url, path, param, null, null,handler,false,null);
+			DownloadHandler<File> handler){
+		return get(url, path, param, null, File.class,handler,false,null);
 	}
 
-	public <T> ResponseFuture<T> download(String url,
+	public ResponseFuture<File> download(String url,
 			String path,
 			HttpParams param,
-			ResponseParser<T> parser,
-			DownloadHandler<T> handler){
-		return get(url, path, param, parser,null,handler,false,null);
+			ResponseParser<File> parser,
+			DownloadHandler<File> handler){
+		return get(url, path, param, parser,File.class,handler,false,null);
+	}
+
+	public File downloadSync(String url,
+			String path,
+			HttpParams param,
+			ResponseParser<File> parser) throws HttpRequestExecutionException{
+		if(isClosed())
+			throw new IllegalStateException("Http has been Closed");
+
+		HttpRequestSession session = createRequestSession(connector,filterChain,null);
+		HttpSyncHandler<File> requesthandler = new HttpSyncHandler<File>(session);
+		RequestEntity requestEntity = session.generateGetEntity(url,
+				null,
+				param,
+				session,
+				parser,
+				File.class);
+		return requesthandler.request(requestEntity);
 	}
 
 	protected <T> HttpRequestSession createRequestSession(HttpConnector connector,

@@ -20,7 +20,7 @@ public interface RequestEntityGenerator {
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClass);
+			Class<?> responseClass);
 	
 	
 	public <T> RequestEntity generateGetEntity(String url,
@@ -28,7 +28,7 @@ public interface RequestEntityGenerator {
 			HttpParams params,
 			HttpSession session,
 			ResponseParser<T> parser,
-			Class<T> responseClass);
+			Class<?> responseClass);
 	
 	public String generateRequestKey(String url,
 			Map<String, ? extends Object> paramMap);

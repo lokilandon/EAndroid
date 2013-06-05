@@ -11,12 +11,12 @@ import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.util.Observer;
 
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 
 
 public interface ResponseParser<T> {
 
-	public T parseObject(ResponseConfig<T> config,
+	public T parseObject(RequestConfig<T> config,
 			InputStream in,
 			Charset defauCharset,
 			Observer readObserver) throws ResponseParseException;

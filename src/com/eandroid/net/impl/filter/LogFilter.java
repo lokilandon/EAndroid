@@ -16,7 +16,7 @@ public class LogFilter extends BasicNetIOFilter{
 	boolean logOnRead;
 	boolean logOnWrite;
 	boolean logException;
-	private String TAG = "NetLogFilter";
+	private String TAG = "LogFilter";
 	public LogFilter() {
 		this(true, true, true, true);
 	}
@@ -30,21 +30,21 @@ public class LogFilter extends BasicNetIOFilter{
 	@Override
 	public void onSessionCreated(NextFilterSelector next, Session session){
 		if(logSessionCreated)
-			EALog.d(TAG+" onSessionCreated", session.toString());
+			EALog.d(TAG, "sessionCreated: "+session.toString());
 		super.onSessionCreated(next, session);
 	}
 
 	@Override
 	public void onRead(NextFilterSelector next, Session session, Object message){
 		if(logOnRead)
-			EALog.d(TAG+" onRead", message.toString());
+			EALog.d(TAG, "read: "+message.toString());
 		super.onRead(next, session, message);
 	}
 
 	@Override
 	public void onWrite(NextFilterSelector next, Session session, Object message){
 		if(logOnWrite)
-			EALog.d(TAG+" onWrite", message.toString());
+			EALog.d(TAG, "write: "+message.toString());
 		super.onWrite(next, session, message);
 	}
 
@@ -52,7 +52,7 @@ public class LogFilter extends BasicNetIOFilter{
 	public void onCatchException(NextFilterSelector next, Session session,
 			Exception exception) {
 		if(logException){
-			EALog.w(TAG+" onCatchException", exception.toString());
+			EALog.w(TAG,"error: " +exception.toString());
 		}
 		super.onCatchException(next, session, exception);
 	}

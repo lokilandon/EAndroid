@@ -17,7 +17,7 @@ import java.util.Observer;
 import android.graphics.Bitmap;
 
 import com.eandroid.content.EContext;
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.response.BitmapResponseParser;
 import com.eandroid.net.http.response.ResponseParseException;
 import com.eandroid.util.BitmapUtils;
@@ -28,7 +28,7 @@ import com.eandroid.util.FileUtils;
 public class DefaultBitmapResponseParser implements BitmapResponseParser{
 	private static final String TAG = "DefaultBitmapResponseParser";
 	@Override
-	public Bitmap parseObject(ResponseConfig<Bitmap> config, InputStream in,Charset defauCharset,
+	public Bitmap parseObject(RequestConfig<Bitmap> config, InputStream in,Charset defauCharset,
 			Observer readObserver) throws ResponseParseException {
 		if(in instanceof FileInputStream){
 			FileInputStream fis = (FileInputStream)in;

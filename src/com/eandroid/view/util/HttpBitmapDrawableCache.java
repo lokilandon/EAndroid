@@ -26,9 +26,10 @@ import com.eandroid.cache.impl.MemoryCache.MemoryCacheParams;
 import com.eandroid.cache.util.BitmapCacheUtils;
 import com.eandroid.content.EContext;
 import com.eandroid.net.Http;
+import com.eandroid.net.http.HttpConnector;
 import com.eandroid.net.http.HttpHandler;
+import com.eandroid.net.http.RequestEntity.RequestConfig;
 import com.eandroid.net.http.ResponseHandler;
-import com.eandroid.net.http.ResponseEntity.ResponseConfig;
 import com.eandroid.net.http.response.BitmapResponseParser;
 import com.eandroid.net.http.response.ResponseParseException;
 import com.eandroid.net.http.util.HttpParams;
@@ -54,7 +55,8 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 			int socketReadTimeOut,
 			long diskCacheExpiredTime,
 			final int imageWidth,
-			final int imageHeight){
+			final int imageHeight,
+			HttpConnector connector){
 		if(cacheParams == null || cacheParams.memoryCacheParams == null
 				|| cacheParams.diskCacheParams == null){
 			throw new IllegalArgumentException("AsyncBitmapDrawableCache init failed");
@@ -63,7 +65,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 		memoryCache = new BitmapDrawableMemoryCache(cacheParams.memoryCacheParams);
 
 		DiskCacheParams diskCacheParams = cacheParams.diskCacheParams;
-		bitmapLoader = Http.open(HTTP_TAG).configThreadPoolCoreSize(threadPoolCoreSize)
+		bitmapLoader = Http.open(HTTP_TAG,connector).configThreadPoolCoreSize(threadPoolCoreSize)
 				.configThreadPoolMaxSize(threadPoolMaxSize)
 				.configTimeoutInSeconds(connectTimeOut, socketReadTimeOut)
 				.configResponseCache(false, diskCacheExpiredTime)
@@ -72,7 +74,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 				.configResponseCacheMaxSize(diskCacheParams.diskCacheSize)
 				.configBitmapResponseParser(new BitmapResponseParser() {
 					@Override
-					public Bitmap parseObject(ResponseConfig<Bitmap> config,
+					public Bitmap parseObject(RequestConfig<Bitmap> config,
 							InputStream in, Charset defauCharset,
 							Observer readObserver)
 									throws ResponseParseException {
@@ -129,7 +131,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 			return bd;
 		}
 		try {
-			Bitmap bitmap = bitmapLoader.getSync(key, null, null, Bitmap.class);
+			Bitmap bitmap = bitmapLoader.getSync(key,null, null, Bitmap.class);
 			if(SystemUtils.hasHoneycomb())
 				return new BitmapDrawable(bitmap);
 			else {
