@@ -17,30 +17,30 @@ public class EALog {
 	public static final int DEBUG =4;
 	public static final int VERBOSE =5;
 	
-	public static int TAG_Filter =6;
+	public static int TAG_FILTER =6;
 	
 	public static void e(String tag,String msg){
-		if(TAG_Filter>=ERROR){
+		if(TAG_FILTER>=ERROR){
 			Log.e(tag, String.valueOf(msg));
 		}
 	}
 	public static void w(String tag,String msg){
-		if(TAG_Filter>=WRAN){
+		if(TAG_FILTER>=WRAN){
 			Log.w(tag, String.valueOf(msg));
 		}
 	}
 	public static void i(String tag,String msg){
-		if(TAG_Filter>=INFO){
+		if(TAG_FILTER>=INFO){
 			Log.i(tag, String.valueOf(msg));
 		}
 	}
 	public static void d(String tag,String msg){
-		if(TAG_Filter>=DEBUG){
+		if(TAG_FILTER>=DEBUG){
 			Log.d(tag, String.valueOf(msg));
 		}
 	}
 	public static void v(String tag,String msg){
-		if(TAG_Filter>=VERBOSE){
+		if(TAG_FILTER>=VERBOSE){
 			Log.v(tag, String.valueOf(msg));
 		}
 	}

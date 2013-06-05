@@ -9,12 +9,14 @@ package com.eandroid.content;
 
 import java.io.File;
 
+import com.eandroid.util.EALog;
+
 import android.os.Environment;
 
 public class EContext {
 
-	public static String TEMP_RELATIVE_PATH = "eandroid/temp/";
-	public static String CACHE_RELATIVE_PATH = "eandroid/cache/";
+	public final static String TEMP_RELATIVE_PATH = "eandroid/temp/";
+	public final static String CACHE_RELATIVE_PATH = "eandroid/cache/";
 	
 
 	public static String getTempFilePath(){
@@ -37,5 +39,10 @@ public class EContext {
 		}
 	}
 	
-	
+	public static void debug(boolean debug){
+		if(debug)
+			EALog.TAG_FILTER = EALog.DEBUG;
+		else
+			EALog.TAG_FILTER = EALog.ERROR;
+	}
 }
