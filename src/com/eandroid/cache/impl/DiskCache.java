@@ -12,6 +12,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Observer;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import com.eandroid.cache.Cache;
@@ -160,6 +161,10 @@ public class DiskCache<K,V> implements Cache<K, V> {
 
 	@Override
 	public V put(K data, V value) {
+		return put(data, value,null);
+	}
+	
+	public V put(K data, V value,Observer observer) {
 		if (data == null || value == null) {
 			return null;
 		}
@@ -190,8 +195,12 @@ public class DiskCache<K,V> implements Cache<K, V> {
 						}
 						byte[] buf = new byte[8 * 1024];
 						int readLength; 
+						int totalReadLength = 0;
 						while ((readLength = in.read(buf)) != -1) {
 							bos.write(buf,0,readLength);
+							totalReadLength += readLength;
+							if(observer != null)
+								observer.update(null, totalReadLength);
 						}
 					} finally{
 						editor.commit();
