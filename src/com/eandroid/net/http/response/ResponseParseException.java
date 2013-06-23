@@ -7,8 +7,10 @@
  */
 package com.eandroid.net.http.response;
 
+import com.eandroid.net.http.HttpResponseException;
 
-public class ResponseParseException extends RuntimeException{
+
+public class ResponseParseException extends HttpResponseException{
 
 	/**
 	 * 
