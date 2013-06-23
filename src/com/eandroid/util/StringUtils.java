@@ -23,4 +23,10 @@ public class StringUtils {
 	public static boolean isNotEmpty(String str){
 		return !isEmpty(str);
 	}
+
+	public static String convertEmpty(String str){
+		if(isEmpty(str))
+			return "";
+		return str;
+	}
 }

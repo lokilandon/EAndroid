@@ -55,6 +55,7 @@ import com.eandroid.net.http.HttpRequestException;
 import com.eandroid.net.http.HttpSession;
 import com.eandroid.net.http.RequestEntity;
 import com.eandroid.net.http.RequestEntity.RequestConfig;
+import com.eandroid.net.http.RequestEntity.RequestMethod;
 import com.eandroid.net.http.ResponseEntity;
 import com.eandroid.net.http.SessionClosedException;
 import com.eandroid.net.http.httpclient.entity.mime.GZipEntity;
@@ -243,8 +244,8 @@ public class HttpClientConnector implements HttpConnector{
 			}
 		}
 		RequestConfig<T> config = new RequestConfigImpl<T>(downloadPath, responseClass,parser,params);
-		String key = generateRequestKey(url,params.getReqParam());
-		return new HttpClientRequestEntity(post,session, reqParams,requestCharset,config,key);
+		String key = generateRequestKey(url,params == null?null:params.getReqParam());
+		return new HttpClientRequestEntity(post,session, reqParams,requestCharset,config,key,RequestMethod.Post);
 	}
 
 	@Override
@@ -272,8 +273,8 @@ public class HttpClientConnector implements HttpConnector{
 			}
 		}
 		RequestConfig<T> config = new RequestConfigImpl<T>(downloadPath, responseClass,parser,params);
-		String key = generateRequestKey(url,params.getReqParam());
-		return new HttpClientRequestEntity(get,session, reqParams,requestCharset,config,key);
+		String key = generateRequestKey(url,params == null?null:params.getReqParam());
+		return new HttpClientRequestEntity(get,session, reqParams,requestCharset,config,key,RequestMethod.Get);
 	}
 
 	@Override
@@ -325,9 +326,7 @@ public class HttpClientConnector implements HttpConnector{
 		} catch (IOException e) {
 			request.abort();
 			throw e;
-		} catch (Exception e) {
-			throw new HttpRequestException(e);
-		}
+		} 
 	}
 
 	public static class HttpClientRequestEntity implements RequestEntity{
@@ -339,13 +338,15 @@ public class HttpClientConnector implements HttpConnector{
 		private final Charset charset;
 		private final RequestConfig<?> config;
 		private final String key;
+		private final RequestMethod method;
 
 		private HttpClientRequestEntity(HttpUriRequest request,
 				HttpSession session,
 				Map<String, ? extends Object> param,
 				Charset charset,
 				RequestConfig<?> config,
-				String key){
+				String key,
+				RequestMethod method){
 			this.request = request;
 			this.session = session;
 			this.paramMap = param;
@@ -353,6 +354,7 @@ public class HttpClientConnector implements HttpConnector{
 			this.charset = charset;
 			this.config = config;
 			this.key = key;
+			this.method = method;
 		}
 
 
@@ -408,7 +410,21 @@ public class HttpClientConnector implements HttpConnector{
 		@Override
 		public String toString() {
 			String paramStr = convertHttpParamKey(paramMap);
-			return request.getURI().toString() + paramStr==null?"":paramStr;
+			return request.getURI().toString()+","+(paramStr==null?"":paramStr)  + ",REQKEY:"+key;
+		}
+
+
+		@Override
+		public String getUrl() {
+			if(request == null)
+				return null;
+			return request.getURI().toString();
+		}
+
+
+		@Override
+		public RequestMethod getRequestMethod() {
+			return method;
 		}
 	}
 
@@ -498,9 +514,9 @@ public class HttpClientConnector implements HttpConnector{
 		@Override
 		public String toString() {
 			if(content != null)
-				return content.toString();
+				return content.toString() + ",REQKEY:"+requestKey;
 			else{
-				return super.toString();
+				return super.toString() + ",REQKEY:"+requestKey;
 			}
 		}
 	}

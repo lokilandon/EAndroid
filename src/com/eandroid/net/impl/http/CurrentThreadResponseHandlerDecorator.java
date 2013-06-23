@@ -33,7 +33,7 @@ public class CurrentThreadResponseHandlerDecorator<T> extends HttpHandlerDecorat
 				}
 			}
 	}	
-	
+
 	@Override
 	public void onCatchException(final Exception exception) {
 		threadHandler.post(new Runnable() {
@@ -84,11 +84,7 @@ public class CurrentThreadResponseHandlerDecorator<T> extends HttpHandlerDecorat
 					return;
 				HttpHandler<T> handler = handlerWeakReference.get();
 				if(handler != null){
-					try{
-						handler.onSuccess(message);
-					}catch (ClassCastException e) {
-						throw new ClassCastException("An error occurs on handler httprequest result: "+e.getMessage());
-					}
+					handler.onSuccess(message);
 				}
 			}
 		});
@@ -117,11 +113,7 @@ public class CurrentThreadResponseHandlerDecorator<T> extends HttpHandlerDecorat
 					return;
 				HttpHandler<T> handler = handlerWeakReference.get();
 				if(handler != null){
-					try{
-						handler.onCache(message);
-					}catch (ClassCastException e) {
-						throw new ClassCastException("An error occurs on handler httprequest result"+e.getMessage());
-					}
+					handler.onCache(message);
 				}
 			}
 		});

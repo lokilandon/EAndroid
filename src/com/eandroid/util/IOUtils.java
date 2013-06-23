@@ -23,9 +23,9 @@ public class IOUtils {
 	public static String inputStream2String(InputStream in , Charset charset,Observer observer) throws IOException{
 		BufferedReader br = null;
 		if(charset == null)
-			br = new BufferedReader(new InputStreamReader(in));
+			br = new BufferedReader(new InputStreamReader(in),8192);
 		else {
-			br = new BufferedReader(new InputStreamReader(in,charset));
+			br = new BufferedReader(new InputStreamReader(in,charset),8192);
 		}
 		String line = null;
 		StringBuilder sb = new StringBuilder();

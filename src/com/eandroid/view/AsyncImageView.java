@@ -9,19 +9,21 @@ package com.eandroid.view;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 
 import com.eandroid.net.http.HttpConnector;
 import com.eandroid.net.http.util.HttpParams;
 import com.eandroid.util.StringUtils;
 import com.eandroid.view.util.ViewImageLoader;
+import com.eandroid.view.util.ViewImageLoader.ImageLoadCompleteListener;
 import com.eandroid.view.util.ViewImageLoader.ImageTaskControlCenter;
 
 public class AsyncImageView extends RecyclingImageView{
-	
+
 	private static ViewImageLoader mImageLoader;
 	private HttpParams mHttpParam;
-	
+
 	public AsyncImageView(Context context) {
 		super(context);
 		initImageLoader(context);
@@ -36,7 +38,7 @@ public class AsyncImageView extends RecyclingImageView{
 		super(context, attrs, defStyle);
 		initImageLoader(context);
 	}
-	
+
 	public static void initImageLoader(Context context,HttpConnector connector){
 		if(mImageLoader == null)
 			mImageLoader = ViewImageLoader.getInstance(context,connector);	
@@ -53,10 +55,6 @@ public class AsyncImageView extends RecyclingImageView{
 		setImageURL(url,-1,-1,null,null,null);
 	}
 
-	public void setImageURL(String url,ImageTaskControlCenter btcc){
-		setImageURL(url,-1,-1,null,null,btcc);
-	}
-	
 	public void setImageURL(String url,int imageSize){
 		setImageURL(url,imageSize,imageSize,null,null,null);
 	}
@@ -64,9 +62,9 @@ public class AsyncImageView extends RecyclingImageView{
 	public void setImageURL(String url,int imageWidth,int imageHeight){
 		setImageURL(url,imageWidth,imageHeight,null,null,null);
 	}
-
-	public void setImageURL(String url,final Bitmap loadingDrawable,final Bitmap failedDrawable){
-		setImageURL(url,-1,-1,loadingDrawable,failedDrawable,null);
+	
+	public void setImageURL(String url,int imageWidth,int imageHeight,ImageTaskControlCenter itcc){
+		setImageURL(url,imageWidth,imageHeight,null,null,itcc);
 	}
 
 	public void setImageURL(String url,
@@ -78,15 +76,24 @@ public class AsyncImageView extends RecyclingImageView{
 		if(StringUtils.isEmpty(url))
 			return;
 
-		mImageLoader.loadImage(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc);
+		mImageLoader.loadImage(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc,null);
+	}
+
+	public void setImageURL(String url,
+			int imageWidth,
+			int imageHeight,
+			final Bitmap loadingBitmap,
+			final Bitmap failedBitmap,
+			ImageTaskControlCenter itcc,
+			ImageLoadCompleteListener listener){
+		if(StringUtils.isEmpty(url))
+			return;
+
+		mImageLoader.loadImage(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc,listener);
 	}
 
 	public void setBackGroundURL(String url){
 		setBackGroundURL(url,-1,-1,null,null,null);
-	}
-	
-	public void setBackGroundURL(String url,ImageTaskControlCenter btcc){
-		setBackGroundURL(url,-1,-1,null,null,btcc);
 	}
 
 	public void setBackGroundURL(String url,int imageSize){
@@ -96,9 +103,9 @@ public class AsyncImageView extends RecyclingImageView{
 	public void setBackGroundURL(String url,int imageWidth,int imageHeight){
 		setBackGroundURL(url,imageWidth,imageHeight,null,null,null);
 	}
-
-	public void setBackGroundURL(String url,final Bitmap loadingDrawable,final Bitmap failedDrawable){
-		setBackGroundURL(url,-1,-1,loadingDrawable,failedDrawable,null);
+	
+	public void setBackGroundURL(String url,int imageWidth,int imageHeight,ImageTaskControlCenter itcc){
+		setBackGroundURL(url,imageWidth,imageHeight,null,null,itcc);
 	}
 
 	public void setBackGroundURL(String url,
@@ -110,9 +117,23 @@ public class AsyncImageView extends RecyclingImageView{
 		if(StringUtils.isEmpty(url))
 			return;
 
-		mImageLoader.loadBackground(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc);
+		mImageLoader.loadBackground(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc,null);
 	}
 	
+	public void setBackGroundURL(String url,
+			int imageWidth,
+			int imageHeight,
+			final Bitmap loadingBitmap,
+			final Bitmap failedBitmap,
+			ImageTaskControlCenter itcc,
+			ImageLoadCompleteListener listener){
+		if(StringUtils.isEmpty(url))
+			return;
+
+		mImageLoader.loadBackground(this, url, imageWidth, imageHeight, loadingBitmap, failedBitmap,mHttpParam, itcc,listener);
+	}
+
+
 	/**
 	 * 设置默认的连接参数
 	 * @param fadeIn
@@ -121,7 +142,7 @@ public class AsyncImageView extends RecyclingImageView{
 		mHttpParam = httpParams;
 		return this;
 	}
-	
+
 	/**
 	 * 获取ImageLoader类，可对其进行配置
 	 * @return
@@ -131,5 +152,47 @@ public class AsyncImageView extends RecyclingImageView{
 			mImageLoader = ViewImageLoader.getInstance(context);
 		return mImageLoader;
 	}
-	
+
+	@Override
+	public void setImageBitmap(Bitmap bm) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getDrawable(), null);
+		super.setImageBitmap(bm);
+	}
+
+	@Override
+	public void setImageDrawable(Drawable drawable) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getDrawable(), null);
+		super.setImageDrawable(drawable);
+	}
+
+	@Override
+	public void setImageResource(int resId) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getDrawable(), null);
+		super.setImageResource(resId);
+	}
+
+	@Override
+	public void setBackground(Drawable background) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getBackground(), null);
+		super.setBackground(background);
+	}
+
+	@Override
+	public void setBackgroundDrawable(Drawable background) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getBackground(), null);
+		super.setBackgroundDrawable(background);
+	}
+
+	@Override
+	public void setBackgroundResource(int resid) {
+		if(!isInEditMode())
+			mImageLoader.cancelPotentialTask(getBackground(), null);
+		super.setBackgroundResource(resid);
+	}
+
 }

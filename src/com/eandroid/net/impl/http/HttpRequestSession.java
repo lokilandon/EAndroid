@@ -105,18 +105,16 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 			if(isClosed())
 				throw new SessionClosedException("Request session has been closed");
 			filterChain.read(this, responseEntity);
-		} catch (Exception e) {
+		} finally{
 			if(responseEntity != null)
 				responseEntity.finish();
-			removeRequestEntity(requestEntity);
-			catchExcepton(e);
 		} 
 	}
 
 	@Override
 	public void catchExcepton(Exception e) {
 		if(isClosed())
-			EALog.d(TAG, "An error occured while RequestSession closing"+e.getMessage());
+			EALog.d(TAG, "An error occured while RequestSession closing:"+e.getMessage());
 		else{
 			filterChain.catchException(this, e);
 		}
@@ -138,7 +136,6 @@ public class HttpRequestSession implements HttpSession,RequestEntityGenerator{
 	@Override
 	public void close() {
 		if(closed.compareAndSet(false, true)){
-			closed.set(true);
 			synchronized (requestList) {
 				for(RequestEntity entity:requestList){
 					entity.release();

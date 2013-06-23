@@ -43,8 +43,8 @@ public class ViewImageLoader{
 	private int  mFadeInTime = 400;
 	private int  mImageWidth = Integer.MAX_VALUE;
 	private int  mImageHeight = Integer.MAX_VALUE;
-	
-	private int mThreadPoolMaxSize = 2;
+
+	private int mThreadPoolMaxSize = 1;
 	private int mThreadPoolCoreSize = 0;
 	private int mConnectTimeOut = 10;
 	private int mSocketReadTimeOut = 5;
@@ -52,9 +52,9 @@ public class ViewImageLoader{
 	private static String mDiskCacheDirectoryName = TAG;
 	private static long mDiskCacheSize = 1024 * 1024 * 20;
 	private static float mMemoryCachePercent = 0.2f;
-	
 
-	private static HttpBitmapDrawableCache mImageLoader;
+
+	private HttpBitmapDrawableCache mImageLoader;
 	private Resources mResources;
 
 	private static volatile ViewImageLoader instance;
@@ -62,7 +62,7 @@ public class ViewImageLoader{
 	public static ViewImageLoader getInstance(Context context) {
 		return getInstance(context, null);
 	}
-	
+
 	public static ViewImageLoader getInstance(Context context,HttpConnector connector) {
 		if(instance == null){
 			synchronized (ViewImageLoader.class) {
@@ -95,35 +95,39 @@ public class ViewImageLoader{
 				connector);
 	}
 
-	public static void clearCache() {
+	public void clearCache() {
 		if(mImageLoader != null)
 			mImageLoader.clear();
 	}
 
-	public static void flushCache() {
+	public void flushCache() {
 		if(mImageLoader != null)
 			mImageLoader.flush();
 	}
-
+	
+	public void close() {
+		if(mImageLoader != null)
+			mImageLoader.close();
+	}
 
 	public void loadBackground(View view,String url){
-		loadBackground(view,url,-1,-1,null,null,null,null);
+		loadBackground(view,url,-1,-1,null,null,null,null,null);
 	}
 
 	public void loadBackground(View view,String url,TaskControlCenter tcc){
-		loadBackground(view,url,-1,-1,null,null,null,tcc);
+		loadBackground(view,url,-1,-1,null,null,null,tcc,null);
 	}
 
 	public void loadBackground(View view,String url,int imageSize){
-		loadBackground(view,url,imageSize,imageSize,null,null,null,null);
+		loadBackground(view,url,imageSize,imageSize,null,null,null,null,null);
 	}
 
 	public void loadBackground(View view,String url,int imageWidth,int imageHeight){
-		loadBackground(view,url,imageWidth,imageHeight,null,null,null,null);
+		loadBackground(view,url,imageWidth,imageHeight,null,null,null,null,null);
 	}
 
 	public void loadBackground(View view,String url,final Bitmap loadingBitmap,final Bitmap failedBitmap){
-		loadBackground(view,url,-1,-1,loadingBitmap,failedBitmap,null,null);
+		loadBackground(view,url,-1,-1,loadingBitmap,failedBitmap,null,null,null);
 	}
 
 	public void loadBackground(final View view,
@@ -133,7 +137,8 @@ public class ViewImageLoader{
 			final Bitmap loadingBitmap,
 			final Bitmap failedBitmap,
 			HttpParams httpParams,
-			TaskControlCenter tcc){
+			TaskControlCenter tcc,
+			final ImageLoadCompleteListener listener){
 		if(view == null)
 			return;
 
@@ -153,43 +158,65 @@ public class ViewImageLoader{
 				new BitmapDrawableLoadHandler() {
 			@Override
 			public void onSuccess(BitmapDrawable bd) {
-				finishLoadedBackground(view,bd);
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else {
+					finishLoadedBackground(view,bd,mFadeIn);
+				}
 			}
 
 			@Override
 			public void onCatchException(Exception exception) {
-				failedToLoadBackground(view,failedBitmap);
+				if(listener != null){
+					listener.loadComplete(view, getFailedDrawable(failedBitmap));
+				}else{
+					failedToLoadBackground(view,failedBitmap);
+				}
 			}
 
 			@Override
 			public void onCache(BitmapDrawable bd) {
-				finishLoadedBackground(view,bd);
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else {
+					finishLoadedBackground(view,bd,mFadeIn);	
+				}
+			}
+			
+
+			@Override
+			public void onMemoryCache(BitmapDrawable bd) {
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else{
+					finishLoadedBackground(view,bd,false);
+				}
 			}
 		});
 		if(future != null)
 			startLoadingBackground(view,loadingBitmap,future);
 	}
-	
+
 	public void loadImage(ImageView view,String url){
-		loadImage(view,url,-1,-1,null,null,null,null);
+		loadImage(view,url,-1,-1,null,null,null,null,null);
 	}
 
 	public void loadImage(ImageView view,String url,TaskControlCenter tcc){
-		loadImage(view,url,-1,-1,null,null,null,tcc);
+		loadImage(view,url,-1,-1,null,null,null,tcc,null);
 	}
 
 	public void loadImage(ImageView view,String url,int imageSize){
-		loadImage(view,url,imageSize,imageSize,null,null,null,null);
+		loadImage(view,url,imageSize,imageSize,null,null,null,null,null);
 	}
 
 	public void loadImage(ImageView view,String url,int imageWidth,int imageHeight){
-		loadImage(view,url,imageWidth,imageHeight,null,null,null,null);
+		loadImage(view,url,imageWidth,imageHeight,null,null,null,null,null);
 	}
 
 	public void loadImage(ImageView view,String url,final Bitmap loadingBitmap,final Bitmap failedBitmap){
-		loadImage(view,url,-1,-1,loadingBitmap,failedBitmap,null,null);
+		loadImage(view,url,-1,-1,loadingBitmap,failedBitmap,null,null,null);
 	}
-	
+
 	public void loadImage(final ImageView view,
 			final String url,
 			int imageWidth,
@@ -197,7 +224,8 @@ public class ViewImageLoader{
 			final Bitmap loadingBitmap,
 			final Bitmap failedBitmap,
 			HttpParams httpParams,
-			TaskControlCenter tcc){
+			TaskControlCenter tcc,
+			final ImageLoadCompleteListener listener){
 		if(view == null)
 			return;
 
@@ -207,7 +235,7 @@ public class ViewImageLoader{
 		if(!cancelPotentialTask(view.getDrawable(),url)){
 			return;
 		}
-
+		view.setImageBitmap(null);
 		ResponseFuture<Bitmap> future = mImageLoader.load(url,
 				mResources,
 				imageWidth,
@@ -217,25 +245,46 @@ public class ViewImageLoader{
 				new BitmapDrawableLoadHandler() {
 			@Override
 			public void onSuccess(BitmapDrawable bd) {
-				finishLoadedImage(view,bd);
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else{
+					finishLoadedImage(view,bd,mFadeIn);
+				}
 			}
 
 			@Override
 			public void onCatchException(Exception exception) {
-				failedToLoadImage(view,failedBitmap);
+				if(listener != null){
+					listener.loadComplete(view, getFailedDrawable(failedBitmap));
+				}else{
+					failedToLoadImage(view,failedBitmap);
+				}
 			}
 
 			@Override
 			public void onCache(BitmapDrawable bd) {
-				finishLoadedImage(view,bd);
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else{
+					finishLoadedImage(view,bd,mFadeIn);
+				}
+			}
+
+			@Override
+			public void onMemoryCache(BitmapDrawable bd) {
+				if(listener != null){
+					listener.loadComplete(view, bd);
+				}else{
+					finishLoadedImage(view,bd,false);
+				}
 			}
 		});
 		if(future != null)
 			startLoadingImage(view,loadingBitmap,future);
 	}
 
-	
-	private boolean cancelPotentialTask(Drawable d,String url){
+
+	public boolean cancelPotentialTask(Drawable d,String url){
 		if(d == null)
 			return true;
 
@@ -246,7 +295,7 @@ public class ViewImageLoader{
 					|| future.isCancelled() || future.isDone()){
 				return true;
 			}
-			if(future instanceof ResponseFuture<?>){
+			if(StringUtils.isNotEmpty(url) && future instanceof ResponseFuture<?>){
 				ResponseFuture<?> responseFuture = (ResponseFuture<?>)future;
 				if(!responseFuture.sameKey(mImageLoader.generateRequestKey(url))){
 					return responseFuture.cancel(true);
@@ -263,40 +312,24 @@ public class ViewImageLoader{
 	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	@SuppressWarnings("deprecation")
 	protected void startLoadingBackground(View v,Bitmap loadingBitmap,Future<Bitmap> task){
-		Bitmap bitmap = null;
-		AsyncBitmapDrawable abd = null;
-		
-		if(loadingBitmap != null){
-			bitmap = loadingBitmap;
-			abd = new AsyncBitmapDrawable(mResources,bitmap,task);
-			abd.setAutoRecycle(false);
-		}else if(mDefaultLoadingResId > 0){
-			bitmap = BitmapFactory.decodeResource(mResources, mDefaultLoadingResId);
-			abd = new AsyncBitmapDrawable(mResources,bitmap,task);
-		}else if(mDefaultLoadingBitmap != null){
-			bitmap = mDefaultLoadingBitmap;
-			abd = new AsyncBitmapDrawable(mResources,bitmap,task);
-			abd.setAutoRecycle(false);
-		}
-
 		if(SystemUtils.hasJellyBean())
-			v.setBackground(abd);
+			v.setBackground(getLoadingDrawable(loadingBitmap, task));
 		else
-			v.setBackgroundDrawable(abd);
+			v.setBackgroundDrawable(getLoadingDrawable(loadingBitmap, task));
 
 	}
 
 	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	@SuppressWarnings("deprecation")
-	protected void finishLoadedBackground(View v,Drawable drawable){
+	protected void finishLoadedBackground(View v,Drawable drawable,boolean fadeIn){
 		if(drawable == null)
 			return;
-		if(mFadeIn){
-			BitmapDrawable transparentBD = new BitmapDrawable(mResources);
-			transparentBD.setAlpha(0);
+		if(fadeIn){
+			Drawable layerDrawable = new BitmapDrawable(mResources);
+			layerDrawable.setAlpha(0);
 			final TransitionDrawable td =
 					new TransitionDrawable(new Drawable[] {
-							transparentBD,
+							layerDrawable,
 							drawable
 					});
 			if(SystemUtils.hasJellyBean()){
@@ -317,31 +350,49 @@ public class ViewImageLoader{
 	@SuppressWarnings("deprecation")
 	@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 	protected void failedToLoadBackground(View v,Bitmap failedBitmap){
-		Bitmap bitmap = null;
-		if(failedBitmap != null){
-			bitmap = failedBitmap;
-		}else if(mDefaultFailLoadedResId > 0){
-			bitmap = BitmapFactory.decodeResource(mResources, mDefaultFailLoadedResId);
-		}else if(mDefaultFailLoadedBitmap != null){
-			bitmap = mDefaultFailLoadedBitmap;
-		}
-
-		if(bitmap != null){
-			BitmapDrawable bd = null;
-			if(SystemUtils.hasHoneycomb())
-				bd = new BitmapDrawable(mResources,bitmap);
-			else {
-				bd = new RecyclingBitmapDrawable(mResources,bitmap);
-			}
-
+		Drawable d = getFailedDrawable(failedBitmap);
+		if(d != null)
 			if(SystemUtils.hasJellyBean())
-				v.setBackground(bd);
+				v.setBackground(d);
 			else
-				v.setBackgroundDrawable(bd);
+				v.setBackgroundDrawable(d);
+	}
+
+	protected void startLoadingImage(ImageView v,Bitmap loadingBitmap,Future<Bitmap> task){
+		v.setImageDrawable(getLoadingDrawable(loadingBitmap, task));
+	}
+
+	protected void finishLoadedImage(ImageView v,Drawable drawable,boolean fadeIn){
+		if(drawable == null)
+			return;
+		if(fadeIn){
+			Drawable layerDrawable = new BitmapDrawable(mResources);
+			layerDrawable.setAlpha(0);
+			final TransitionDrawable td =
+					new TransitionDrawable(new Drawable[] {
+							layerDrawable,
+							drawable
+					});
+//			if(v.getBackground() == null){
+//				if(SystemUtils.hasJellyBean())
+//					v.setBackground(v.getDrawable());
+//				else
+//					v.setBackgroundDrawable(v.getDrawable());
+//			}
+			v.setImageDrawable(td);
+			td.startTransition(mFadeInTime);
+		}else{
+			v.setImageDrawable(drawable);
 		}
 	}
+
+	protected void failedToLoadImage(ImageView v,Bitmap failedBitmap){
+		Drawable d = getFailedDrawable(failedBitmap);
+		if(d != null)
+			v.setImageDrawable(d);
+	}
 	
-	protected void startLoadingImage(ImageView v,Bitmap loadingBitmap,Future<Bitmap> task){
+	private Drawable getLoadingDrawable(Bitmap loadingBitmap,Future<Bitmap> task) {
 		Bitmap bitmap = null;
 		AsyncBitmapDrawable abd = null;
 		if(loadingBitmap != null){
@@ -355,37 +406,23 @@ public class ViewImageLoader{
 			bitmap = mDefaultLoadingBitmap;
 			abd = new AsyncBitmapDrawable(mResources,bitmap,task);
 			abd.setAutoRecycle(false);
-		}
-
-		v.setImageDrawable(abd);
-	}
-
-	protected void finishLoadedImage(ImageView v,Drawable drawable){
-		if(drawable == null)
-			return;
-		if(mFadeIn){
-			BitmapDrawable transparentBD = new BitmapDrawable(mResources);
-			transparentBD.setAlpha(0);
-			final TransitionDrawable td =
-					new TransitionDrawable(new Drawable[] {
-							transparentBD,
-							drawable
-					});
-			v.setImageDrawable(td);
-			td.startTransition(mFadeInTime);
 		}else{
-			v.setImageDrawable(drawable);
+			abd = new AsyncBitmapDrawable(mResources,null, task);
 		}
+		return abd;
 	}
-
-	protected void failedToLoadImage(ImageView v,Bitmap failedBitmap){
+	
+	private Drawable getFailedDrawable(Bitmap failedBitmap) {
 		Bitmap bitmap = null;
+		boolean autoRecycle = true;
 		if(failedBitmap != null){
 			bitmap = failedBitmap;
+			autoRecycle = false;
 		}else if(mDefaultFailLoadedResId > 0){
 			bitmap = BitmapFactory.decodeResource(mResources, mDefaultFailLoadedResId);
 		}else if(mDefaultFailLoadedBitmap != null){
 			bitmap = mDefaultFailLoadedBitmap;
+			autoRecycle = false;
 		}
 
 		if(bitmap != null){
@@ -394,11 +431,12 @@ public class ViewImageLoader{
 				bd = new BitmapDrawable(mResources,bitmap);
 			else {
 				bd = new RecyclingBitmapDrawable(mResources,bitmap);
+				((RecyclingBitmapDrawable)bd).setAutoRecycle(autoRecycle);
 			}
-			v.setImageDrawable(bd);
+			return bd;
 		}
+		return null;
 	}
-
 
 
 	/**
@@ -533,21 +571,21 @@ public class ViewImageLoader{
 	public void setFailResourceId(int id){
 		mDefaultFailLoadedResId = id;
 	}
-	
+
 	public static class ImageTaskControlCenter extends TaskControlCenter{
 		public static void cancel(View v){
 			cancelTask(getTask(v.getBackground()));
-			
+
 			if(v instanceof ImageView){
 				ImageView hiv = (ImageView)v;
 				cancelTask(getTask(hiv.getDrawable()));
 			}
 		}
-		
+
 		private static Future<Bitmap> getTask(Drawable d){
 			if(d == null)
 				return null;
-			
+
 			if(d instanceof AsyncBitmapDrawable){
 				AsyncBitmapDrawable abd = (AsyncBitmapDrawable)d;
 				return abd.getTask();
@@ -555,14 +593,18 @@ public class ViewImageLoader{
 				return null;
 			}
 		}
-		
+
 		private static void cancelTask(Future<Bitmap> f){
 			if(f == null)
 				return;
-			
+
 			if(f != null && !f.isCancelled() && !f.isDone()){
 				f.cancel(true);
 			}
 		}
+	}
+
+	public static interface ImageLoadCompleteListener{
+		public void loadComplete(View view,Drawable drawable);
 	}
 }

@@ -154,7 +154,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 			return null;
 		BitmapDrawable bd = memoryCache.load(key);
 		if(bd != null){
-			handler.onCache(bd);
+			handler.onMemoryCache(bd);
 			return null;
 		}
 		if(httpParams == null){
@@ -175,7 +175,7 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 					RecyclingBitmapDrawable rbd = new RecyclingBitmapDrawable(resources, bitmap);
 					rbd.setIsCached(true);
 					memoryCache.put(key, rbd);
-					handler.onCache(rbd);
+					handler.onSuccess(rbd);
 				}
 			}
 			@Override
@@ -280,6 +280,8 @@ public class HttpBitmapDrawableCache implements Cache<String, BitmapDrawable>{
 	public static abstract class BitmapDrawableLoadHandler implements HttpHandler<BitmapDrawable>{
 		@Override
 		public void onRequestStart() {}
+		
+		public abstract void onMemoryCache(BitmapDrawable bd);
 
 		@Override
 		public void onUploadProgress(int progress) {}

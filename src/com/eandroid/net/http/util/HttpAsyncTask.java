@@ -94,23 +94,19 @@ public class HttpAsyncTask<Result> implements Future<Result>{
 		THREAD_POOL_EXECUTOR.shutdownNow();
 	}
 	
-	private TaskControlCenter taskControlCenter;
-	public HttpAsyncTask(final HttpRequestSession session,TaskControlCenter controlCenter){
+	public HttpAsyncTask(final HttpRequestSession session,final TaskControlCenter controlCenter){
 		if(session == null)
 			throw new IllegalArgumentException("An error occured while HttpAsyncTask init requestSession or reqUrl must not be null!");
-		this.taskControlCenter = controlCenter;
-		if(controlCenter != null)
-			controlCenter.addTask(this);
 		session.decoratorHandler(new HttpAsyncTaskReponseHandler(null));
 		workerRunnable = new WorkerRunnable<Result>(){
 			@Override
 			public Result call() throws Exception {
 				Process.setThreadPriority(Process.THREAD_PRIORITY_BACKGROUND);
-				if(taskControlCenter != null){
-					synchronized (taskControlCenter.pauseLockObject) {
-						while (taskControlCenter.isPaused() && !isCancelled()) {
+				if(controlCenter != null){
+					synchronized (controlCenter.pauseLockObject) {
+						while (controlCenter.isPaused() && !isCancelled()) {
 							try{
-								taskControlCenter.pauseLockObject.wait();
+								controlCenter.pauseLockObject.wait();
 							}catch(InterruptedException e){}
 						}
 					}
@@ -132,10 +128,6 @@ public class HttpAsyncTask<Result> implements Future<Result>{
 				return super.cancel(mayInterruptIfRunning);
 			}
 		};
-	}
-
-	public void setControlCenter(TaskControlCenter tcc){
-		this.taskControlCenter = tcc;
 	}
 	
 	public void request(RequestEntity requestEntity){
@@ -167,7 +159,6 @@ public class HttpAsyncTask<Result> implements Future<Result>{
 				break;
 			}
 		}
-
 		mStatus = Status.RUNNING;
 		workerRunnable.requestEntity = requestEntity;
 		executor.execute(futureTask);

@@ -15,11 +15,18 @@ import com.eandroid.net.http.util.HttpParams;
 
 public interface RequestEntity {		
 
+	public static enum RequestMethod{
+		Get,Post
+	}
 	/**
 	 * 获取请求的唯一键
 	 * @return
 	 */
 	public String key();
+	
+	public String getUrl();
+	
+	public RequestMethod getRequestMethod();
 	/**
 	 * 获取http连接
 	 * @return

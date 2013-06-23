@@ -91,7 +91,7 @@ public class HttpResponseParseFilter extends BasicHttpFilter{
 	public void onRead(NextFilterSelector next, Session session, ResponseEntity entity){
 		Class<?> resultClass = entity.getConfig().getResponseClass();
 		Object responseContent = entity.getContent();
-		if((resultClass != null && resultClass.isAssignableFrom(ResponseEntity.class))
+		if((resultClass != null && ResponseEntity.class.isAssignableFrom(resultClass))
 				|| (responseContent != null && !(responseContent instanceof InputStream))){
 			super.onRead(next, session, entity);
 			return;

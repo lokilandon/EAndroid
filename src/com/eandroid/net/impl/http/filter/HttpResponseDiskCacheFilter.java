@@ -104,15 +104,16 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 		try {
 			inputStream = diskCache.load(key, cacheExpiredTime);
 			if(inputStream != null){
-				cacheHit = true;
 				cacheEntity = ((HttpConnector)session.getConnector()).
 						generateResonseEntity(message);
 				cacheEntity.setCacheContent(inputStream);
 				inputStream = null;
 				((HttpRequestSession)session).resonse(cacheEntity, message);
+				cacheHit = true;
 			}
 		} catch (Exception e) {
-			EALog.w(TAG, "onWrite - " + e);
+			EALog.w(TAG, "An error occured while repsonse cached object." + e);
+			diskCache.remove(key);
 		} finally{
 			if(inputStream != null)
 				try {
@@ -146,7 +147,7 @@ public class HttpResponseDiskCacheFilter extends BasicHttpFilter{
 		boolean isCache = false;
 		HttpParams httpParams = config.getHttpParams();
 		Class<?> resultClass = entity.getConfig().getResponseClass();
-		if(httpParams.hasConfigResponseCache()){
+		if(httpParams != null && httpParams.hasConfigResponseCache()){
 			isCache = httpParams.isResponseCache();
 		}else if(resultClass != null){
 			if(resultClass == File.class){
