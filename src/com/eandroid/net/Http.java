@@ -42,6 +42,7 @@ import com.eandroid.net.http.util.HttpParams;
 import com.eandroid.net.http.util.HttpSyncHandler;
 import com.eandroid.net.http.util.SerialExecutor;
 import com.eandroid.net.http.util.TaskControlCenter;
+import com.eandroid.net.http.util.TaskControlCenter.Task;
 import com.eandroid.net.impl.BasicNetIOFilterChain;
 import com.eandroid.net.impl.http.CurrentThreadResponseHandlerDecorator;
 import com.eandroid.net.impl.http.HttpClientConnector;
@@ -49,6 +50,7 @@ import com.eandroid.net.impl.http.HttpRequestExecutionException;
 import com.eandroid.net.impl.http.HttpRequestSession;
 import com.eandroid.net.impl.http.ResponseFuture;
 import com.eandroid.net.impl.http.filter.BasicHttpFilter;
+import com.eandroid.net.impl.http.filter.HttpLogFilter;
 import com.eandroid.net.impl.http.filter.HttpResponseDiskCacheFilter;
 import com.eandroid.net.impl.http.filter.HttpResponseParseFilter;
 import com.eandroid.net.impl.http.response.DefaultBitmapResponseParser;
@@ -95,7 +97,7 @@ public class Http {
 			return thread;
 		}
 	};
-	private final BlockingQueue<Runnable> sPoolWorkQueue = new LinkedBlockingQueue<Runnable>(20);
+	private final BlockingQueue<Runnable> sPoolWorkQueue = new LinkedBlockingQueue<Runnable>(30);
 	private volatile ThreadPoolExecutor THREAD_POOL_EXECUTOR;
 	public volatile Executor SERIAL_EXECUTOR;
 
@@ -118,7 +120,7 @@ public class Http {
 	public static Http open(String name){
 		return open(name,null,null);
 	}
-	
+
 	/**
 	 * 打开Http客户端
 	 * @param name 客户端名称
@@ -182,7 +184,7 @@ public class Http {
 		filterChain.addFilter(responseDiskCacheFilter);
 		responseParserFilter = createReponseParseFilter();
 		filterChain.addFilter(responseParserFilter);
-		//		filterChain.addFilter(new LogFilter());
+		filterChain.addFilter(new HttpLogFilter(false,true,true,true));
 		filterChain.addAllFilters(filters);
 	}
 
@@ -878,6 +880,8 @@ public class Http {
 				responseClazz);
 
 		ResponseFuture<T> future = new ResponseFuture<T>(task,requestEntity.key());
+		if(controlCenter != null)
+			controlCenter.addTask(new Task(future, this, requestEntity,handler,isSerial));
 		task.requestOnExecutor(executor,requestEntity);
 
 		return future;
@@ -1008,7 +1012,31 @@ public class Http {
 				responseClazz);
 
 		ResponseFuture<T> future = new ResponseFuture<T>(task,requestEntity.key());
+		if(controlCenter != null)
+			controlCenter.addTask(new Task(future, this, requestEntity,handler,isSerial));
 		task.requestOnExecutor(executor, requestEntity);
+
+		return future;
+	}
+
+	public <T> ResponseFuture<T> request(RequestEntity request,
+			HttpHandler<T> handler,
+			boolean isSerial,
+			TaskControlCenter controlCenter){
+		if(isClosed())
+			throw new IllegalStateException("Http has been Closed");
+
+		Executor executor = THREAD_POOL_EXECUTOR;
+		if(isSerial)
+			executor = SERIAL_EXECUTOR;
+
+		HttpRequestSession session = createRequestSession(connector,filterChain,createResponseHandler(handler));
+		HttpAsyncTask<T> task = new HttpAsyncTask<T>(session,controlCenter);
+
+		ResponseFuture<T> future = new ResponseFuture<T>(task,request.key());
+		if(controlCenter != null)
+			controlCenter.addTask(new Task(future, this, request,handler,isSerial));
+		task.requestOnExecutor(executor, request);
 
 		return future;
 	}
